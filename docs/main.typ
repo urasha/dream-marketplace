@@ -1,46 +1,9 @@
-#set enum(indent: 1em, body-indent: 1em) 
-#set list(indent: 1em, body-indent: 1em) 
+#set enum(indent: 1em, body-indent: 1em)
+#set list(indent: 1em, body-indent: 1em)
 #set par(justify: true)
 
-#align(center)[
-  Федеральное государственное автономное образовательное учреждение высшего образования
-  «Национальный исследовательский университет ИТМО
-  
-  \
-  
-  Факультет Программной Инженерии и Компьютерной Техники
-
-  #v(4cm)
-
-  #text(size: 15pt, weight: "bold")[Создание информационной системы для платформы обмена сновидениями "Dream Marketplace"]
-
-  #v(0.25cm)
-  
-  #text(size: 14pt)[Курсовая работа\
-по дисциплине "Информационные системы"]
-]
-
-#v(5cm)
-
-#align(right)[
-  *Выполнили* \
-  Джохадзе Анна Бекаевна \
-  Нестеров Владислав Алексеевич \
-  Группа P3310  
-
-  \
-
-  *Преподаватель* \ 
-  Тюрин Иван Николаевич
-]
-
-#v(4.5cm)
-#align(center)[
-  г. Санкт-Петербург 2025
-]
+#include "title-page.typ"
 
 #pagebreak()
-
-// ------ 1 этап ------
 
 #include "first-part.typ"
