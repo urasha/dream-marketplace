@@ -301,5 +301,73 @@ $$ LANGUAGE plpgsql;
 *6. Индексы*
 
 ```sql
-
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_user_yandex_id
+ON user_account (yandex_id);
 ```
+Почему: при входе через Яндекс ID нужно быстро найти локальную запись. 
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_dream_record_user_created_at
+ON dream_record (user_id, created_at DESC);
+```
+
+Почему: покрывает запросы на получение коллекций снов с пагинацией/сортировкой по дате, снижает время выдачи списка.
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_visualization_status_created
+ON visualization (status, created_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_visualization_dream_record
+ON visualization (dream_record_id);
+```
+
+Почему: менеджер задач будет фильтровать по status и брать задачи → индекс ускорит выборку. Индекс по dream_record_id ускоряет join visualization → dream_record.
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_lot_status_price
+ON lot (status, price);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_lot_status_submitted
+ON lot (status, submitted_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_lot_visualization
+ON lot (visualization_id);
+```
+
+Почему: частые операции, такие как показать публичные лоты, фильтровать по статусу, цене, сортировать.
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_notification_user_isread_created
+ON notification (user_id, is_read, created_at DESC);
+```
+
+Почему: ускоряет выдачу списка уведомлений и подсчёт непрочитанных.
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_comment_lot_created
+ON comment (lot_id, created_at DESC);
+
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_rating_lot_user
+ON rating (lot_id, user_id);
+```
+
+Почему: ускоряет отображение комментариев на странице лота и предотвращает множественные оценки от одного пользователя.
+
+\
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_drtag_tag
+ON dream_record_tag (tag_id, dream_record_id);
+```
+
+Почему: при фильтрации каталога по тегу быстро найти соответствующие записи.
