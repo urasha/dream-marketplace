@@ -29,3 +29,5 @@ docker-compose.yml
 init/
 
 postgres_data/
+
+sql/
