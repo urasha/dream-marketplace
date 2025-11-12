@@ -301,14 +301,6 @@ $$ LANGUAGE plpgsql;
 *6. Индексы*
 
 ```sql
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uq_user_yandex_id
-ON user_account (yandex_id);
-```
-Почему: при входе через Яндекс ID нужно быстро найти локальную запись. 
-
-\
-
-```sql
 CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_dream_record_user_created_at
 ON dream_record (user_id, created_at DESC);
 ```
@@ -365,9 +357,72 @@ ON rating (lot_id, user_id);
 
 \
 
+Чтобы подтвердить, что индексы действительно будут использоваться, мы заполнили базу данных тестовыми значениями и выполнили EXPLAIN ANALYZE для базы с созданными индексами и без:
+
 ```sql
-CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_drtag_tag
-ON dream_record_tag (tag_id, dream_record_id);
+-- Получение последних снов пользователя (dream_record) по created_at
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM dream_record
+WHERE user_id = 10
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Получение READY визуализаций
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM visualization
+WHERE status = 'READY'
+ORDER BY created_at DESC
+LIMIT 50;
+
+-- Лоты с фильтром по статусу и цене
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM lot
+WHERE status = 'OPEN' AND price BETWEEN 100 AND 1000
+ORDER BY price
+LIMIT 50;
+
+-- Уведомления пользователя
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM notification
+WHERE user_id = 5
+ORDER BY is_read, created_at DESC
+LIMIT 50;
+
+-- Комментарии к лоту
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM comment
+WHERE lot_id = 15
+ORDER BY created_at DESC;
 ```
 
-Почему: при фильтрации каталога по тегу быстро найти соответствующие записи.
+\
+
+Результаты анализов:
+```
+1. 
+Без индекса: Execution Time: 0.355 ms
+С индексом: Execution Time: 0.028 ms
+
+2. 
+Без индекса: Execution Time: 0.257 ms
+С индексом: Execution Time: 0.071 ms
+
+3. 
+Без индекса: Execution Time: 0.441 ms
+С индексом: Execution Time: 0.073 ms
+
+4. 
+Без индекса: Execution Time: 0.180 ms
+С индексом: Execution Time: 0.016 ms
+
+5. 
+Без индекса: Execution Time: 0.266 ms
+С индексом: Execution Time: 0.016 ms
+```
+\
+Как видно, индексы действительно значительно ускоряют выполнение запросов к соответствующим данным.
