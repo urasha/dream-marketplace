@@ -560,7 +560,7 @@
 
 *Общая схема архитектуры*
 
-#image("./general_architecture.png", width: 80%)
+#image("./images/general_architecture.png", width: 80%)
 
 \
 

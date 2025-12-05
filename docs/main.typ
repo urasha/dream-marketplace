@@ -6,4 +6,8 @@
 
 #pagebreak()
 
-#include "first-part.typ"
+#include "first-stage.typ"
+
+#pagebreak()
+
+#include "second-stage.typ"
