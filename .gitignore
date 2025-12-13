@@ -24,11 +24,11 @@ hs_err_pid*
 replay_pid*
 
 # custom
-docker-compose.yml
-
 init/
 
 postgres_data/
+
+.env
 
 sql/
 

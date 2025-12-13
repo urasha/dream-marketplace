@@ -3,6 +3,7 @@ package ru.urasha.callmeani.dream_marketplace.models.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 import ru.urasha.callmeani.dream_marketplace.models.enums.VisualizationStatus;
+import ru.urasha.callmeani.dream_marketplace.models.entities.DreamRecord;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +29,10 @@ public class Visualization {
 
     @Enumerated(EnumType.STRING)
     private VisualizationStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dream_record_id")
+    private DreamRecord dreamRecord;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

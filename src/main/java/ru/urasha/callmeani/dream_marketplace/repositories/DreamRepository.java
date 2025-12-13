@@ -20,7 +20,7 @@ public interface DreamRepository extends JpaRepository<DreamRecord, Long> {
 
     Optional<DreamRecord> findByIdAndUser(Long id, UserAccount user);
 
-    List<DreamRecord> findByCategoryIdOrderByCreatedAtDesc(Integer categoryId);
+    List<DreamRecord> findByCategoryIdOrderByCreatedAtDesc(Long categoryId);
 
     @Query("SELECT d FROM DreamRecord d JOIN d.tags t WHERE t.name = :tagName AND d.privacy = 'PUBLIC' ORDER BY d.createdAt DESC")
     List<DreamRecord> findPublicDreamsByTag(@Param("tagName") String tagName);
