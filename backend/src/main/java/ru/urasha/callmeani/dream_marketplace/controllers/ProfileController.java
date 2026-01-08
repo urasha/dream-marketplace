@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.controller;
+package ru.urasha.callmeani.dream_marketplace.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
-import ru.urasha.callmeani.dream_marketplace.web.dto.UserDto;
-import ru.urasha.callmeani.dream_marketplace.web.mapper.UserMapper;
+import ru.urasha.callmeani.dream_marketplace.dto.UserDto;
+import ru.urasha.callmeani.dream_marketplace.mappers.UserMapper;
 
 @RestController
 @RequestMapping("/api/profile")

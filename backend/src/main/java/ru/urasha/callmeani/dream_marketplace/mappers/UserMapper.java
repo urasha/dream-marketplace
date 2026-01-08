@@ -1,7 +1,7 @@
-package ru.urasha.callmeani.dream_marketplace.web.mapper;
+package ru.urasha.callmeani.dream_marketplace.mappers;
 
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
-import ru.urasha.callmeani.dream_marketplace.web.dto.UserDto;
+import ru.urasha.callmeani.dream_marketplace.dto.UserDto;
 
 public final class UserMapper {
 

@@ -47,7 +47,7 @@ public class VisualizationConsumer {
             // Simulate generation and upload placeholder bytes
             String key = bucketKeyPrefix + "/" + msg.dreamId() + "/visualization-" + msg.visualizationId() + ".txt";
             String mockContent = "Generated visualization for prompt: " + msg.prompt();
-            String uri = storageService.uploadBytes(key, mockContent.getBytes(StandardCharsets.UTF_8), "text/plain");
+            String uri = storageService.uploadBytes(key, mockContent.getBytes(StandardCharsets.UTF_8), "text/plain; charset=utf-8");
 
             vis.setFilePath(uri);
             vis.setMime("text/plain");

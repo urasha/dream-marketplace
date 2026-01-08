@@ -1,7 +1,9 @@
 package ru.urasha.callmeani.dream_marketplace.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Category;
 import ru.urasha.callmeani.dream_marketplace.models.entities.DreamRecord;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Tag;
@@ -66,9 +68,12 @@ public class DreamService {
     @Transactional
     public Visualization requestVisualization(Long dreamId, UserAccount user) {
         DreamRecord dream = dreamRepository.findById(dreamId)
-                .orElseThrow(() -> new IllegalArgumentException("Dream not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
         if (!dream.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Access denied");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (dream.getVisualization() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Visualization already accepted for this dream");
         }
         Visualization vis = new Visualization();
         vis.setDreamRecord(dream);
@@ -83,9 +88,9 @@ public class DreamService {
 
     public List<Visualization> getVisualizations(Long dreamId, UserAccount user) {
         DreamRecord dream = dreamRepository.findById(dreamId)
-                .orElseThrow(() -> new IllegalArgumentException("Dream not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
         if (!dream.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Access denied");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
         return visualizationRepository.findByDreamRecordIdOrderByCreatedAtDesc(dreamId);
     }
@@ -93,10 +98,10 @@ public class DreamService {
     @Transactional
     public Visualization acceptVisualization(Long visualizationId, UserAccount user) {
         Visualization vis = visualizationRepository.findById(visualizationId)
-                .orElseThrow(() -> new IllegalArgumentException("Visualization not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visualization not found"));
         DreamRecord dream = vis.getDreamRecord();
         if (dream == null || !dream.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Access denied");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
         vis.setStatus(VisualizationStatus.ACCEPTED);
         dream.setVisualization(vis);

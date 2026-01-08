@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.dto;
+package ru.urasha.callmeani.dream_marketplace.dto;
 
 import ru.urasha.callmeani.dream_marketplace.models.enums.Privacy;
 

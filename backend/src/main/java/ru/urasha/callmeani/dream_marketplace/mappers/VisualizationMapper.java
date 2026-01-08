@@ -1,7 +1,7 @@
-package ru.urasha.callmeani.dream_marketplace.web.mapper;
+package ru.urasha.callmeani.dream_marketplace.mappers;
 
 import ru.urasha.callmeani.dream_marketplace.models.entities.Visualization;
-import ru.urasha.callmeani.dream_marketplace.web.dto.VisualizationDto;
+import ru.urasha.callmeani.dream_marketplace.dto.VisualizationDto;
 
 public final class VisualizationMapper {
 
