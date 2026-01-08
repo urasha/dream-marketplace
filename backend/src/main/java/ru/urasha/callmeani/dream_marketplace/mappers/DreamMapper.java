@@ -1,7 +1,7 @@
-package ru.urasha.callmeani.dream_marketplace.web.mapper;
+package ru.urasha.callmeani.dream_marketplace.mappers;
 
 import ru.urasha.callmeani.dream_marketplace.models.entities.DreamRecord;
-import ru.urasha.callmeani.dream_marketplace.web.dto.DreamDto;
+import ru.urasha.callmeani.dream_marketplace.dto.DreamDto;
 
 import java.util.Set;
 import java.util.stream.Collectors;

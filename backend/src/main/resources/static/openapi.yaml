@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: Dream Marketplace API
+  version: 0.0.1
+  description: API для платформы визуализации и обмена сновидениями
+servers:
+  - url: http://localhost:8080
+    description: Local
+paths:
+  /oauth/yandex/login:
+    get:
+      summary: Redirect to Yandex OAuth
+      tags: [auth]
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+          required: false
+      responses:
+        '302':
+          description: Redirect to Yandex OAuth
+  /oauth/yandex/callback:
+    get:
+      summary: Handle Yandex OAuth callback
+      tags: [auth]
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: error
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: Auth success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Missing code
+        '401':
+          description: OAuth error
+
+  /api/profile/me:
+    get:
+      summary: Get current user profile
+      tags: [profile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        '401':
+          description: Unauthorized
+
+  /api/dreams:
+    post:
+      summary: Create dream
+      tags: [dreams]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DreamCreateRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamDto'
+        '400':
+          description: Validation failed
+        '401':
+          description: Unauthorized
+    get:
+      summary: List own dreams
+      tags: [dreams]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DreamDto'
+        '401':
+          description: Unauthorized
+
+  /api/dreams/{id}/visualize:
+    post:
+      summary: Request visualization for dream
+      tags: [visualizations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualizationDto'
+        '401': { description: Unauthorized }
+        '403': { description: Access denied }
+        '404': { description: Dream not found }
+        '409': { description: Visualization already accepted }
+
+  /api/dreams/{id}/visualizations:
+    get:
+      summary: List visualizations for dream
+      tags: [visualizations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VisualizationDto'
+        '401': { description: Unauthorized }
+        '403': { description: Access denied }
+        '404': { description: Dream not found }
+
+  /api/visualizations/{id}/accept:
+    post:
+      summary: Accept visualization
+      tags: [visualizations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualizationDto'
+        '401': { description: Unauthorized }
+        '403': { description: Access denied }
+        '404': { description: Visualization not found }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserDto'
+
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+        yandexId:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+
+    DreamCreateRequest:
+      type: object
+      required: [title, content, privacy]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        privacy:
+          type: string
+          enum: [PUBLIC, PRIVATE]
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+
+    DreamDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        content:
+          type: string
+        privacy:
+          type: string
+          enum: [PUBLIC, PRIVATE]
+        categoryId:
+          type: integer
+          format: int64
+          nullable: true
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        visualizationId:
+          type: integer
+          format: int64
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    VisualizationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        prompt:
+          type: string
+        generator:
+          type: string
+        filePath:
+          type: string
+          nullable: true
+        mime:
+          type: string
+          nullable: true
+        width:
+          type: integer
+          nullable: true
+        height:
+          type: integer
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, READY, FAILED, ACCEPTED, REJECTED]
+        dreamRecordId:
+          type: integer
+          format: int64
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time

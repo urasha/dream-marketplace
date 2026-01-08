@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.dto;
+package ru.urasha.callmeani.dream_marketplace.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

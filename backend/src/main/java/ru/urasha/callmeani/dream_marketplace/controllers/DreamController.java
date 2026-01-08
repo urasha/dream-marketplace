@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.controller;
+package ru.urasha.callmeani.dream_marketplace.controllers;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -13,11 +13,11 @@ import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.service.DreamService;
-import ru.urasha.callmeani.dream_marketplace.web.dto.DreamCreateRequest;
-import ru.urasha.callmeani.dream_marketplace.web.dto.DreamDto;
-import ru.urasha.callmeani.dream_marketplace.web.dto.VisualizationDto;
-import ru.urasha.callmeani.dream_marketplace.web.mapper.DreamMapper;
-import ru.urasha.callmeani.dream_marketplace.web.mapper.VisualizationMapper;
+import ru.urasha.callmeani.dream_marketplace.dto.DreamCreateRequest;
+import ru.urasha.callmeani.dream_marketplace.dto.DreamDto;
+import ru.urasha.callmeani.dream_marketplace.dto.VisualizationDto;
+import ru.urasha.callmeani.dream_marketplace.mappers.DreamMapper;
+import ru.urasha.callmeani.dream_marketplace.mappers.VisualizationMapper;
 
 import java.util.List;
 

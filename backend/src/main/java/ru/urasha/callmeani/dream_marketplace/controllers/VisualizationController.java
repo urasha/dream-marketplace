@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.controller;
+package ru.urasha.callmeani.dream_marketplace.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -10,8 +10,8 @@ import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.DreamService;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
-import ru.urasha.callmeani.dream_marketplace.web.dto.VisualizationDto;
-import ru.urasha.callmeani.dream_marketplace.web.mapper.VisualizationMapper;
+import ru.urasha.callmeani.dream_marketplace.dto.VisualizationDto;
+import ru.urasha.callmeani.dream_marketplace.mappers.VisualizationMapper;
 
 @RestController
 @RequestMapping("/api/visualizations")

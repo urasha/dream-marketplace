@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.dto;
+package ru.urasha.callmeani.dream_marketplace.dto;
 
 public record AuthResponse(String token, String tokenType, UserDto user) {
     public static AuthResponse bearer(String token, UserDto user) {

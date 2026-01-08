@@ -27,6 +27,10 @@ logging:
     root: INFO
     org.springframework.security: INFO
 
+springdoc:
+  swagger-ui:
+    url: /openapi.yaml
+
 app:
   kafka:
     visualization-topic: ${VIS_TOPIC:visualization-requests}

@@ -1,4 +1,4 @@
-package ru.urasha.callmeani.dream_marketplace.web.controller;
+package ru.urasha.callmeani.dream_marketplace.controllers;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,8 +12,8 @@ import ru.urasha.callmeani.dream_marketplace.config.JwtProperties;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.service.YandexOAuthService;
 import ru.urasha.callmeani.dream_marketplace.security.JwtService;
-import ru.urasha.callmeani.dream_marketplace.web.dto.AuthResponse;
-import ru.urasha.callmeani.dream_marketplace.web.mapper.UserMapper;
+import ru.urasha.callmeani.dream_marketplace.dto.AuthResponse;
+import ru.urasha.callmeani.dream_marketplace.mappers.UserMapper;
 
 @RestController
 @RequestMapping("/oauth/yandex")
