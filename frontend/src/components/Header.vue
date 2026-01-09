@@ -1,16 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Menu, X, Search, User, Bell } from 'lucide-vue-next'
 
 const props = defineProps({
-  currentPage: { type: String, required: true },
+  currentPage: { type: String, required: false },
   userBalance: { type: Number, required: true },
   userRole: { type: String, default: 'user' },
   unreadNotifications: { type: Number, default: 3 },
 })
 
-const emit = defineEmits(['navigate'])
-
+const router = useRouter()
 const mobileMenuOpen = ref(false)
 const searchQuery = ref('')
 
@@ -22,15 +22,24 @@ const navItems = computed(() => {
   return base
 })
 
-const handleNavigate = (page) => {
-  emit('navigate', page)
+const go = (page) => {
+  const map = {
+    home: () => router.push({ name: 'home' }),
+    admin: () => router.push({ name: 'admin' }),
+    notifications: () => router.push({ name: 'notifications' }),
+    profile: () => router.push({ name: 'profile' }),
+  }
+  map[page]?.()
 }
+
+const goNotifications = () => go('notifications')
+const goProfile = () => go('profile')
 </script>
 
 <template>
   <header class="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm border-b border-gray-200 z-50">
     <div class="max-w-[1160px] mx-auto px-6 h-full flex items-center justify-between">
-      <button @click="handleNavigate('home')" class="hover:opacity-80 transition-opacity">
+      <button @click="go('home')" class="hover:opacity-80 transition-opacity">
         <div class="tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
           Dream Marketplace
         </div>
@@ -50,7 +59,7 @@ const handleNavigate = (page) => {
         <button
           v-for="item in navItems"
           :key="item.id"
-          @click="handleNavigate(item.id)"
+          @click="go(item.id)"
           class="hover:text-violet-600 transition-colors"
           :class="currentPage === item.id ? 'text-violet-600' : 'text-gray-700'"
         >
@@ -61,14 +70,14 @@ const handleNavigate = (page) => {
           <span class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg">{{ userBalance }} ₽</span>
 
           <button
-            @click="handleNavigate('notifications')"
+            @click="goNotifications"
             class="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Bell class="w-5 h-5 text-gray-700" />
             <span v-if="unreadNotifications > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <button @click="handleNavigate('profile')" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button @click="goProfile" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <User class="w-5 h-5 text-gray-700" />
           </button>
         </div>
@@ -96,7 +105,7 @@ const handleNavigate = (page) => {
           <button
             v-for="item in navItems"
             :key="item.id"
-            @click="() => { handleNavigate(item.id); mobileMenuOpen = false }"
+            @click="() => { go(item.id); mobileMenuOpen = false }"
             class="text-left py-2 hover:text-violet-600 transition-colors"
             :class="currentPage === item.id ? 'text-violet-600' : 'text-gray-700'"
           >
@@ -105,7 +114,7 @@ const handleNavigate = (page) => {
 
           <div class="flex items-center gap-3 pt-3 mt-3 border-t border-gray-200">
             <button
-              @click="() => { handleNavigate('notifications'); mobileMenuOpen = false }"
+              @click="() => { goNotifications(); mobileMenuOpen = false }"
               class="flex items-center gap-2 text-gray-700"
             >
               <Bell class="w-5 h-5" />
@@ -115,7 +124,7 @@ const handleNavigate = (page) => {
           </div>
 
           <button
-            @click="() => { handleNavigate('profile'); mobileMenuOpen = false }"
+            @click="() => { goProfile(); mobileMenuOpen = false }"
             class="flex items-center gap-2 text-gray-700"
           >
             <User class="w-5 h-5" />

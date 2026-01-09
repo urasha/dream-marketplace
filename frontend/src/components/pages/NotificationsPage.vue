@@ -1,8 +1,9 @@
 <script setup>
 import { Bell } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import { notifications } from '../../data/mockData'
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
 </script>
 
 <template>
@@ -30,7 +31,7 @@ const emit = defineEmits(['navigate'])
 
         <button
           v-if="notification.type === 'generation_ready'"
-          @click="emit('navigate', 'dream-detail', 1)"
+          @click="router.push({ name: 'dream-detail', params: { id: 1 } })"
           class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
         >
           Посмотреть
@@ -38,7 +39,7 @@ const emit = defineEmits(['navigate'])
 
         <button
           v-else-if="notification.type === 'purchase'"
-          @click="emit('navigate', 'profile')"
+          @click="router.push({ name: 'profile' })"
           class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
         >
           Перейти в профиль

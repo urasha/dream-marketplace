@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { lots } from '../../data/mockData'
 
@@ -8,7 +9,8 @@ const props = defineProps({
   userBalance: { type: Number, required: true },
 })
 
-const emit = defineEmits(['navigate', 'updateBalance'])
+const emit = defineEmits(['updateBalance'])
+const router = useRouter()
 
 const step = ref('confirm')
 const selectedAmount = ref(null)
@@ -44,7 +46,7 @@ const handleTopUp = () => {
   <div class="max-w-[800px] mx-auto px-6 py-12" v-if="lot">
     <template v-if="step === 'confirm'">
       <button
-        @click="emit('navigate', 'lot-detail', lotId)"
+        @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
         class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
       >
         <ArrowLeft class="w-5 h-5" />
@@ -101,7 +103,7 @@ const handleTopUp = () => {
           Подтвердить покупку
         </button>
         <button
-          @click="emit('navigate', 'lot-detail', lotId)"
+          @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
           class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
         >
           Отмена
@@ -182,7 +184,7 @@ const handleTopUp = () => {
         <h1 class="mb-4">Покупка завершена</h1>
         <p class="text-gray-700 mb-8">Транзакция выполнена успешно. Лот добавлен в ваши покупки.</p>
         <button
-          @click="emit('navigate', 'lot-detail', lotId)"
+          @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
           class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
         >
           Перейти к скачиванию

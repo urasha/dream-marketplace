@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeft, Star, Eye, Download } from 'lucide-vue-next'
 import { lots, comments } from '../../data/mockData'
 
@@ -7,7 +8,7 @@ const props = defineProps({
   lotId: { type: Number, default: null },
 })
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
 
 const isPurchased = ref(false)
 const lot = computed(() => lots.find((item) => item.id === props.lotId))
@@ -16,7 +17,7 @@ const lot = computed(() => lots.find((item) => item.id === props.lotId))
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
     <button
-      @click="emit('navigate', 'home')"
+      @click="router.push({ name: 'home' })"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />
@@ -60,7 +61,7 @@ const lot = computed(() => lots.find((item) => item.id === props.lotId))
 
           <button
             v-if="!isPurchased"
-            @click="emit('navigate', 'purchase', lot.id)"
+            @click="router.push({ name: 'purchase', params: { id: lot.id } })"
             class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors mb-6"
           >
             Купить

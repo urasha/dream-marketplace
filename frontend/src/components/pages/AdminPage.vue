@@ -3,8 +3,6 @@ import { ref } from 'vue'
 import { CheckCircle, XCircle } from 'lucide-vue-next'
 import { moderationQueue, moderationLog } from '../../data/mockData'
 
-const emit = defineEmits(['navigate'])
-
 const activeTab = ref('queue')
 const selectedLot = ref(null)
 const showRejectModal = ref(false)
