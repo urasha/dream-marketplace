@@ -10,6 +10,8 @@ const userBalance = ref(0)
 
 const session = useSessionStore()
 const userRole = computed(() => session.role.value || 'user')
+const isAuthenticated = computed(() => session.isAuthenticated.value)
+const userName = computed(() => session.state.profile?.username || '')
 
 const updateBalance = (value) => {
   userBalance.value = value
@@ -26,6 +28,8 @@ onMounted(() => {
       :current-page="route.name"
       :user-balance="userBalance"
       :user-role="userRole"
+      :is-authenticated="isAuthenticated"
+      :user-name="userName"
     />
 
     <main class="pt-16">

@@ -8,6 +8,8 @@ const props = defineProps({
   userBalance: { type: Number, required: true },
   userRole: { type: String, default: 'user' },
   unreadNotifications: { type: Number, default: 3 },
+  isAuthenticated: { type: Boolean, default: false },
+  userName: { type: String, default: '' },
 })
 
 const router = useRouter()
@@ -34,6 +36,19 @@ const go = (page) => {
 
 const goNotifications = () => go('notifications')
 const goProfile = () => go('profile')
+const startAuth = () => {
+  // Redirect to backend OAuth entrypoint (same for login/registration)
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  window.location.href = `${base}/oauth/yandex/login`
+}
+
+const handleUserClick = () => {
+  if (props.isAuthenticated) {
+    goProfile()
+    return
+  }
+  startAuth()
+}
 </script>
 
 <template>
@@ -77,9 +92,27 @@ const goProfile = () => go('profile')
             <span v-if="unreadNotifications > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <button @click="goProfile" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <User class="w-5 h-5 text-gray-700" />
-          </button>
+          <div class="flex items-center gap-2">
+            <button @click="handleUserClick" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <User class="w-5 h-5 text-gray-700" />
+            </button>
+
+            <span
+              v-if="isAuthenticated"
+              class="text-sm text-gray-800 font-medium cursor-pointer"
+              title="Перейти в профиль"
+              @click="goProfile"
+              role="button"
+            >
+              {{ userName || 'Профиль' }}
+            </span>
+
+            <div v-else class="flex items-center gap-2 text-sm text-violet-700 font-medium">
+              <button class="hover:text-violet-800 transition-colors" @click="startAuth">Войти с Yandex</button>
+              <span class="text-gray-300">•</span>
+              <button class="hover:text-violet-800 transition-colors" @click="startAuth">Зарегистрироваться</button>
+            </div>
+          </div>
         </div>
       </nav>
 
@@ -123,13 +156,33 @@ const goProfile = () => go('profile')
             </button>
           </div>
 
-          <button
-            @click="() => { goProfile(); mobileMenuOpen = false }"
-            class="flex items-center gap-2 text-gray-700"
-          >
-            <User class="w-5 h-5" />
-            Профиль
-          </button>
+          <div class="flex flex-col gap-2 text-gray-700">
+            <button
+              v-if="isAuthenticated"
+              @click="() => { goProfile(); mobileMenuOpen = false }"
+              class="flex items-center gap-2"
+            >
+              <User class="w-5 h-5" />
+              <span class="font-medium">{{ userName || 'Профиль' }}</span>
+            </button>
+
+            <template v-else>
+              <button
+                @click="() => { startAuth(); mobileMenuOpen = false }"
+                class="flex items-center gap-2 text-violet-700 font-medium"
+              >
+                <User class="w-5 h-5" />
+                Войти с Yandex
+              </button>
+              <button
+                @click="() => { startAuth(); mobileMenuOpen = false }"
+                class="flex items-center gap-2 text-violet-700 font-medium"
+              >
+                <User class="w-5 h-5" />
+                Зарегистрироваться
+              </button>
+            </template>
+          </div>
 
           <div class="pt-3 mt-3 border-t border-gray-200">
             <span class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg inline-block">Баланс: {{ userBalance }} ₽</span>

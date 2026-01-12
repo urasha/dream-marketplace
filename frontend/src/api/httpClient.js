@@ -48,7 +48,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const data = await parseJsonSafe(response)
 
   if (response.status === 401) {
-    window.location.href = '/oauth/yandex/login'
+    window.location.href = `${API_BASE}/oauth/yandex/login`
     const error = new Error('Unauthorized')
     error.status = 401
     error.data = data

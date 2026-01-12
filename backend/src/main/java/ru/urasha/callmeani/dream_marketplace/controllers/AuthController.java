@@ -4,16 +4,16 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.urasha.callmeani.dream_marketplace.config.JwtProperties;
+import ru.urasha.callmeani.dream_marketplace.dto.AuthResponse;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.service.YandexOAuthService;
 import ru.urasha.callmeani.dream_marketplace.security.JwtService;
-import ru.urasha.callmeani.dream_marketplace.dto.AuthResponse;
-import ru.urasha.callmeani.dream_marketplace.mappers.UserMapper;
 
 @RestController
 @RequestMapping("/oauth/yandex")
@@ -23,15 +23,18 @@ public class AuthController {
     private final UserAccountService userAccountService;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
+    private final String frontendUrl;
 
     public AuthController(YandexOAuthService yandexOAuthService,
                           UserAccountService userAccountService,
                           JwtService jwtService,
-                          JwtProperties jwtProperties) {
+                          JwtProperties jwtProperties,
+                          @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
         this.yandexOAuthService = yandexOAuthService;
         this.userAccountService = userAccountService;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
+        this.frontendUrl = frontendUrl;
     }
 
     @GetMapping("/login")
@@ -64,6 +67,8 @@ public class AuthController {
         cookie.setMaxAge((int) jwtProperties.getAccessTokenTtlSeconds());
         response.addCookie(cookie);
 
-        return ResponseEntity.ok(AuthResponse.bearer(token, UserMapper.toDto(user)));
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", frontendUrl)
+            .build();
     }
 }
