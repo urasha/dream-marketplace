@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { Menu, X, Search, User, Bell } from 'lucide-vue-next'
+import { Menu, X, Search, User, Bell, LogOut } from 'lucide-vue-next'
+import { useSessionStore } from '../stores/session'
 
 const props = defineProps({
   currentPage: { type: String, required: false },
@@ -13,8 +14,11 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const session = useSessionStore()
 const mobileMenuOpen = ref(false)
 const searchQuery = ref('')
+const profileMenuOpen = ref(false)
+const profileMenuRef = ref(null)
 
 const navItems = computed(() => {
   const base = [{ id: 'home', label: 'Главная' }]
@@ -35,20 +39,40 @@ const go = (page) => {
 }
 
 const goNotifications = () => go('notifications')
-const goProfile = () => go('profile')
+const goProfile = () => {
+  profileMenuOpen.value = false
+  go('profile')
+}
 const startAuth = () => {
   // Redirect to backend OAuth entrypoint (same for login/registration)
   const base = import.meta.env.VITE_API_URL || 'http://localhost:8080'
   window.location.href = `${base}/oauth/yandex/login`
 }
 
-const handleUserClick = () => {
-  if (props.isAuthenticated) {
-    goProfile()
-    return
-  }
-  startAuth()
+const handleLogout = async () => {
+  await session.logout()
+  router.push({ name: 'home' })
+  profileMenuOpen.value = false
 }
+
+const toggleProfileMenu = () => {
+  profileMenuOpen.value = !profileMenuOpen.value
+}
+
+const handleClickOutside = (event) => {
+  if (!profileMenuRef.value) return
+  if (!profileMenuRef.value.contains(event.target)) {
+    profileMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
@@ -92,25 +116,49 @@ const handleUserClick = () => {
             <span v-if="unreadNotifications > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <div class="flex items-center gap-2">
-            <button @click="handleUserClick" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <div class="relative" ref="profileMenuRef">
+            <button
+              @click.stop="toggleProfileMenu"
+              class="p-2 rounded-lg border border-gray-200 hover:border-violet-400 hover:bg-violet-50 transition-colors flex items-center gap-2"
+            >
               <User class="w-5 h-5 text-gray-700" />
+              <span v-if="isAuthenticated" class="text-sm text-gray-800 font-medium">{{ userName || 'Профиль' }}</span>
             </button>
 
-            <span
-              v-if="isAuthenticated"
-              class="text-sm text-gray-800 font-medium cursor-pointer"
-              title="Перейти в профиль"
-              @click="goProfile"
-              role="button"
+            <div
+              v-if="profileMenuOpen"
+              class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50"
             >
-              {{ userName || 'Профиль' }}
-            </span>
+              <div v-if="isAuthenticated" class="px-4 py-2 border-b border-gray-100 text-sm text-gray-700">
+                {{ userName || 'Профиль' }}
+              </div>
 
-            <div v-else class="flex items-center gap-2 text-sm text-violet-700 font-medium">
-              <button class="hover:text-violet-800 transition-colors" @click="startAuth">Войти с Yandex</button>
-              <span class="text-gray-300">•</span>
-              <button class="hover:text-violet-800 transition-colors" @click="startAuth">Зарегистрироваться</button>
+              <button
+                v-if="isAuthenticated"
+                @click="goProfile"
+                class="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-800 hover:bg-violet-50"
+              >
+                <User class="w-4 h-4" />
+                Перейти в профиль
+              </button>
+              <button
+                v-if="isAuthenticated"
+                @click="handleLogout"
+                class="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:text-red-700 hover:bg-violet-50"
+              >
+                <LogOut class="w-4 h-4" />
+                Выйти
+              </button>
+
+              <template v-else>
+                <button
+                  @click="() => { profileMenuOpen = false; startAuth() }"
+                  class="w-full flex items-center gap-2 px-4 py-2 text-left text-violet-700 hover:bg-violet-50"
+                >
+                  <User class="w-4 h-4" />
+                  Войти с Yandex
+                </button>
+              </template>
             </div>
           </div>
         </div>
@@ -157,29 +205,30 @@ const handleUserClick = () => {
           </div>
 
           <div class="flex flex-col gap-2 text-gray-700">
-            <button
-              v-if="isAuthenticated"
-              @click="() => { goProfile(); mobileMenuOpen = false }"
-              class="flex items-center gap-2"
-            >
-              <User class="w-5 h-5" />
-              <span class="font-medium">{{ userName || 'Профиль' }}</span>
-            </button>
+            <template v-if="isAuthenticated">
+              <button
+                @click="() => { goProfile(); mobileMenuOpen = false }"
+                class="flex items-center gap-2"
+              >
+                <User class="w-5 h-5" />
+                <span class="font-medium">{{ userName || 'Профиль' }}</span>
+              </button>
+              <button
+                @click="() => { handleLogout(); mobileMenuOpen = false }"
+                class="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <LogOut class="w-5 h-5" />
+                Выйти
+              </button>
+            </template>
 
             <template v-else>
               <button
                 @click="() => { startAuth(); mobileMenuOpen = false }"
-                class="flex items-center gap-2 text-violet-700 font-medium"
+                class="flex items-center gap-2 text-violet-700 font-medium hover:text-violet-800"
               >
                 <User class="w-5 h-5" />
                 Войти с Yandex
-              </button>
-              <button
-                @click="() => { startAuth(); mobileMenuOpen = false }"
-                class="flex items-center gap-2 text-violet-700 font-medium"
-              >
-                <User class="w-5 h-5" />
-                Зарегистрироваться
               </button>
             </template>
           </div>

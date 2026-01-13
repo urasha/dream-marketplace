@@ -82,6 +82,11 @@ const handleUpdateProfile = async () => {
     updateError.value = err?.data?.message || 'Не удалось обновить профиль'
   }
 }
+
+const handleLogout = async () => {
+  await session.logout()
+  router.push({ name: 'home' })
+}
 </script>
 
 <template>
@@ -99,6 +104,13 @@ const handleUpdateProfile = async () => {
             <span v-if="profileLoading" class="text-sm text-gray-500">Загрузка...</span>
           </div>
           <div class="text-gray-700 mb-4">{{ displayEmail }}</div>
+
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-red-500 hover:text-red-600 transition-colors"
+          >
+            Выйти
+          </button>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>

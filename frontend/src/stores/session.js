@@ -1,11 +1,20 @@
 import { reactive, computed } from 'vue'
 import { fetchProfile, updateProfile as apiUpdateProfile } from '../api/profile'
+import { logout as apiLogout } from '../api/auth'
 
 const state = reactive({
   profile: null,
   loading: false,
   error: null,
 })
+
+function clearToken() {
+  try {
+    localStorage.removeItem('access_token')
+  } catch (e) {
+    // ignore storage errors
+  }
+}
 
 async function loadProfile() {
   state.loading = true
@@ -34,6 +43,21 @@ async function updateProfile(payload) {
   }
 }
 
+async function logout() {
+  state.loading = true
+  state.error = null
+  try {
+    await apiLogout()
+  } catch (err) {
+    state.error = err
+    // continue clearing client state even if backend fails
+  } finally {
+    clearToken()
+    state.profile = null
+    state.loading = false
+  }
+}
+
 const isAuthenticated = computed(() => Boolean(state.profile))
 const role = computed(() => state.profile?.role?.toLowerCase?.() || 'user')
 
@@ -42,6 +66,7 @@ export function useSessionStore() {
     state,
     loadProfile,
     updateProfile,
+    logout,
     isAuthenticated,
     role,
   }
