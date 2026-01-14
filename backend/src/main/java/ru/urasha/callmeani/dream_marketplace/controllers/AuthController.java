@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.config.JwtProperties;
 import ru.urasha.callmeani.dream_marketplace.dto.AuthResponse;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.service.YandexOAuthService;
 import ru.urasha.callmeani.dream_marketplace.security.JwtService;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/oauth/yandex")
@@ -47,30 +49,36 @@ public class AuthController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<AuthResponse> callback(@RequestParam(name = "code", required = false) String code,
-                                                 @RequestParam(name = "error", required = false) String error,
-                                                 HttpServletResponse response) {
+    public ResponseEntity<?> callback(@RequestParam(name = "code", required = false) String code,
+                                      @RequestParam(name = "error", required = false) String error,
+                                      HttpServletResponse response) {
         if (error != null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Пользователь отменил доступ в Yandex ID"));
         }
         if (code == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        var profile = yandexOAuthService.exchangeCode(code);
-        var user = userAccountService.findOrCreateFromYandex(profile);
-        String token = jwtService.generateToken(user);
+        try {
+            var profile = yandexOAuthService.exchangeCode(code);
+            var user = userAccountService.findOrCreateFromYandex(profile);
+            String token = jwtService.generateToken(user);
 
-        Cookie cookie = new Cookie("access_token", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) jwtProperties.getAccessTokenTtlSeconds());
-        response.addCookie(cookie);
+            Cookie cookie = new Cookie("access_token", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(false);
+            cookie.setPath("/");
+            cookie.setMaxAge((int) jwtProperties.getAccessTokenTtlSeconds());
+            response.addCookie(cookie);
 
-        return ResponseEntity.status(HttpStatus.FOUND)
-            .header("Location", frontendUrl)
-            .build();
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", frontendUrl)
+                .build();
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(Map.of("message", ex.getReason() != null ? ex.getReason() : "Yandex ID недоступен"));
+        }
     }
 
     @PostMapping("/logout")

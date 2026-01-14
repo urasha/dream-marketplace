@@ -3,11 +3,13 @@ package ru.urasha.callmeani.dream_marketplace.service;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.config.YandexOAuthProperties;
 import ru.urasha.callmeani.dream_marketplace.service.dto.YandexProfile;
 import ru.urasha.callmeani.dream_marketplace.service.dto.YandexTokenResponse;
@@ -31,7 +33,8 @@ public class YandexOAuthService {
         return "https://oauth.yandex.ru/authorize?response_type=code" +
                 "&client_id=" + properties.getClientId() +
                 "&redirect_uri=" + properties.getRedirectUri() +
-                (state != null ? "&state=" + state : "");
+            "&force_confirm=1" +
+            (state != null ? "&state=" + state : "");
     }
 
     public YandexProfile exchangeCode(String code) {
@@ -56,9 +59,13 @@ public class YandexOAuthService {
         body.add("redirect_uri", properties.getRedirectUri());
 
         try {
-            return restTemplate.postForObject(TOKEN_URL, new HttpEntity<>(body, headers), YandexTokenResponse.class);
+            YandexTokenResponse token = restTemplate.postForObject(TOKEN_URL, new HttpEntity<>(body, headers), YandexTokenResponse.class);
+            if (token == null || token.getAccessToken() == null || token.getAccessToken().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Yandex ID недоступен: не удалось получить токен");
+            }
+            return token;
         } catch (RestClientException e) {
-            throw new IllegalStateException("Failed to exchange code with Yandex", e);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Yandex ID недоступен, попробуйте позже", e);
         }
     }
 
@@ -72,9 +79,13 @@ public class YandexOAuthService {
                     new HttpEntity<>(headers),
                     YandexUserInfoResponse.class
             );
-            return response.getBody();
+            YandexUserInfoResponse body = response.getBody();
+            if (body == null || body.getId() == null || body.getDefaultEmail() == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Yandex ID недоступен: пустой ответ профиля");
+            }
+            return body;
         } catch (RestClientException e) {
-            throw new IllegalStateException("Failed to fetch Yandex user info", e);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Yandex ID недоступен, попробуйте позже", e);
         }
     }
 }
