@@ -99,18 +99,19 @@ const handleLogout = async () => {
           <User class="w-12 h-12 text-white" />
         </div>
         <div class="flex-1">
-          <div class="flex items-center gap-3 mb-4">
-            <h2 class="text-xl font-semibold">{{ displayName }}</h2>
-            <span v-if="profileLoading" class="text-sm text-gray-500">Загрузка...</span>
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div class="flex items-center gap-3">
+              <h2 class="text-xl font-semibold">{{ displayName }}</h2>
+              <span v-if="profileLoading" class="text-sm text-gray-500">Загрузка...</span>
+            </div>
+            <button
+              @click="handleLogout"
+              class="px-4 py-2 border border-red-200 bg-red-50 text-sm font-medium text-red-700 rounded-lg hover:bg-red-100 hover:border-red-300 hover:text-red-800 transition-colors shadow-[0_6px_16px_rgba(239,68,68,0.18)]"
+            >
+              Выйти
+            </button>
           </div>
           <div class="text-gray-700 mb-4">{{ displayEmail }}</div>
-
-          <button
-            @click="handleLogout"
-            class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-red-500 hover:text-red-600 transition-colors"
-          >
-            Выйти
-          </button>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
