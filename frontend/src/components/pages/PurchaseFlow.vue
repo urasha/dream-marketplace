@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
-import { lots } from '../../data/mockData'
+import { useLotsStore } from '../../stores/lots'
 
 const props = defineProps({
   lotId: { type: Number, default: null },
@@ -11,12 +11,19 @@ const props = defineProps({
 
 const emit = defineEmits(['updateBalance'])
 const router = useRouter()
+const lotsStore = useLotsStore()
 
 const step = ref('confirm')
 const selectedAmount = ref(null)
 
-const lot = computed(() => lots.find((item) => item.id === props.lotId))
+const lot = computed(() => lotsStore.state.current)
 const hasSufficientBalance = computed(() => (lot.value ? props.userBalance >= lot.value.price : false))
+
+onMounted(() => {
+  if (props.lotId) {
+    lotsStore.loadLot(props.lotId).catch(() => {})
+  }
+})
 
 const handleConfirmPurchase = () => {
   if (!lot.value) return

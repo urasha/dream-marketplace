@@ -16,8 +16,8 @@ public class Lot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dream_record_id")
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dream_record_id", nullable = false, unique = true)
     private DreamRecord dreamRecord;
 
     @Column(nullable = false)
@@ -26,14 +26,14 @@ public class Lot {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(precision = 10, scale = 2)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     private LotStatus status;
 
-    @Column(name = "submitted_at")
+    @Column(name = "submitted_at", nullable = false, updatable = false)
     private LocalDateTime submittedAt;
 
     @Column(name = "reviewed_at")
@@ -41,4 +41,12 @@ public class Lot {
 
     @Column(name = "moderation_reason", columnDefinition = "TEXT")
     private String moderationReason;
+
+    @PrePersist
+    protected void onCreate() {
+        this.submittedAt = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = LotStatus.OPEN;
+        }
+    }
 }

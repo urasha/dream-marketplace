@@ -104,8 +104,8 @@ onMounted(loadDream)
               <div v-if="viz.mime" class="text-gray-600 text-sm">{{ viz.mime }}</div>
             </div>
             <button
-              v-if="viz.status === 'READY'"
-              @click="selectedVisualization = viz.id; router.push({ name: 'create-lot' })"
+              v-if="viz.status === 'READY' || viz.status === 'ACCEPTED'"
+              @click="selectedVisualization = viz.id; router.push({ name: 'create-lot', query: { dreamId: dream.id, visualizationId: viz.id } })"
               class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               Создать лот

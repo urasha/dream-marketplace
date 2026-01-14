@@ -4,10 +4,10 @@ import { Star } from 'lucide-vue-next'
 const props = defineProps({
   id: { type: Number, required: true },
   title: { type: String, required: true },
-  description: { type: String, required: true },
-  price: { type: Number, required: true },
-  author: { type: String, required: true },
-  rating: { type: Number, required: true },
+  description: { type: String, default: '' },
+  price: { type: [Number, String], default: null },
+  author: { type: String, default: 'Автор' },
+  rating: { type: Number, default: 0 },
   tags: { type: Array, default: () => [] },
 })
 
@@ -40,12 +40,12 @@ const emit = defineEmits(['click'])
       <div class="flex items-center justify-between pt-3 border-t border-gray-200">
         <div class="flex items-center gap-1">
           <Star class="w-4 h-4 fill-amber-400 text-amber-400" />
-          <span class="text-gray-800">{{ rating.toFixed(1) }}</span>
+          <span class="text-gray-800">{{ (rating || 0).toFixed(1) }}</span>
         </div>
         <div class="text-gray-600">{{ author }}</div>
       </div>
 
-      <div class="mt-3 text-violet-600">{{ price }} ₽</div>
+      <div class="mt-3 text-violet-600">{{ price ? `${price} ₽` : '—' }}</div>
     </div>
   </button>
 </template>

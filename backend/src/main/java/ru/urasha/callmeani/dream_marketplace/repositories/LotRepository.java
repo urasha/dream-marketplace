@@ -7,9 +7,18 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Lot;
+import ru.urasha.callmeani.dream_marketplace.models.enums.LotStatus;
+
+import java.util.List;
 
 @Repository
 public interface LotRepository extends JpaRepository<Lot, Long> {
+
+    boolean existsByDreamRecordId(Long dreamRecordId);
+
+    List<Lot> findByStatusOrderBySubmittedAtDesc(LotStatus status);
+
+    List<Lot> findByDreamRecord_User_IdOrderBySubmittedAtDesc(Long userId);
 
     @Modifying
     @Transactional
