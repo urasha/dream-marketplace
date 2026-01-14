@@ -12,6 +12,7 @@ import ru.urasha.callmeani.dream_marketplace.mappers.LotMapper;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.LotService;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
+import ru.urasha.callmeani.dream_marketplace.repositories.RatingRepository;
 
 import java.util.List;
 
@@ -21,10 +22,12 @@ public class LotController {
 
     private final LotService lotService;
     private final UserAccountService userAccountService;
+    private final RatingRepository ratingRepository;
 
-    public LotController(LotService lotService, UserAccountService userAccountService) {
+    public LotController(LotService lotService, UserAccountService userAccountService, RatingRepository ratingRepository) {
         this.lotService = lotService;
         this.userAccountService = userAccountService;
+        this.ratingRepository = ratingRepository;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -47,7 +50,13 @@ public class LotController {
 
     @GetMapping
     public ResponseEntity<List<LotDto>> listOpen() {
-        var list = lotService.listOpen().stream().map(LotMapper::toDto).toList();
+        var list = lotService.listOpen().stream()
+            .map(lot -> LotMapper.toDto(
+                lot,
+                ratingRepository.averageForLot(lot.getId()),
+                ratingRepository.countForLot(lot.getId())
+            ))
+            .toList();
         return ResponseEntity.ok(list);
     }
 
@@ -55,7 +64,13 @@ public class LotController {
     @GetMapping("/mine")
     public ResponseEntity<List<LotDto>> listOwn(@AuthenticationPrincipal JwtUserDetails details) {
         var user = userAccountService.findById(details.userId()).orElseThrow();
-        var list = lotService.listOwn(user).stream().map(LotMapper::toDto).toList();
+        var list = lotService.listOwn(user).stream()
+            .map(lot -> LotMapper.toDto(
+                lot,
+                ratingRepository.averageForLot(lot.getId()),
+                ratingRepository.countForLot(lot.getId())
+            ))
+            .toList();
         return ResponseEntity.ok(list);
     }
 
@@ -63,6 +78,10 @@ public class LotController {
     public ResponseEntity<LotDto> get(@PathVariable Long id, @AuthenticationPrincipal JwtUserDetails details) {
         var user = details == null ? null : userAccountService.findById(details.userId()).orElse(null);
         var lot = lotService.getLotForPublic(id, user);
-        return ResponseEntity.ok(LotMapper.toDto(lot));
+        return ResponseEntity.ok(LotMapper.toDto(
+                lot,
+                ratingRepository.averageForLot(lot.getId()),
+                ratingRepository.countForLot(lot.getId())
+        ));
     }
 }

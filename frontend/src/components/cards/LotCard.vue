@@ -8,7 +8,8 @@ const props = defineProps({
   price: { type: [Number, String], default: null },
   author: { type: String, default: 'Автор' },
   category: { type: String, default: '' },
-  rating: { type: Number, default: 0 },
+  ratingAverage: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
   tags: { type: Array, default: () => [] },
 })
 
@@ -45,7 +46,8 @@ const emit = defineEmits(['click'])
       <div class="flex items-center justify-between pt-3 border-t border-gray-200">
         <div class="flex items-center gap-1">
           <Star class="w-4 h-4 fill-amber-400 text-amber-400" />
-          <span class="text-gray-800">{{ (rating || 0).toFixed(1) }}</span>
+          <span class="text-gray-800">{{ (ratingAverage || 0).toFixed(1) }}</span>
+          <span class="text-gray-500 text-xs" v-if="ratingCount">({{ ratingCount }})</span>
         </div>
         <div class="text-gray-600">{{ author }}</div>
       </div>

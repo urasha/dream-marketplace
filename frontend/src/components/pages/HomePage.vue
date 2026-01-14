@@ -219,6 +219,8 @@ onUnmounted(() => {
         :price="lot.price"
         :author="lot.authorName"
         :category="lot.categoryName"
+        :rating-average="lot.ratingAverage"
+        :rating-count="lot.ratingCount"
         :tags="lot.tags || []"
         @click="() => router.push({ name: 'lot-detail', params: { id: lot.id } })"
       />

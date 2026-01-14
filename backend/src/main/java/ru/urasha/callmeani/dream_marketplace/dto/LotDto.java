@@ -18,6 +18,8 @@ public record LotDto(
         Long categoryId,
         String categoryName,
         java.util.List<String> tags,
+        Double ratingAverage,
+        Long ratingCount,
         LocalDateTime submittedAt,
         LocalDateTime reviewedAt,
         String moderationReason
