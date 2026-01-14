@@ -1,14 +1,17 @@
 package ru.urasha.callmeani.dream_marketplace.controllers;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
@@ -33,44 +36,45 @@ public class DreamController {
         this.userAccountService = userAccountService;
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping
     public ResponseEntity<DreamDto> create(@Valid @RequestBody DreamCreateRequest request,
-                                           Authentication authentication) {
-        UserAccount user = requireUser(authentication);
+                                           @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
         var dream = dreamService.create(user, request.title(), request.content(), request.privacy(), request.categoryId(), request.tagIds());
         return ResponseEntity.ok(DreamMapper.toDto(dream));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public ResponseEntity<List<DreamDto>> myDreams(Authentication authentication) {
-        UserAccount user = requireUser(authentication);
+    public ResponseEntity<List<DreamDto>> myDreams(@AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
         var dreams = dreamService.findOwn(user).stream()
                 .map(DreamMapper::toDto)
                 .toList();
         return ResponseEntity.ok(dreams);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/visualize")
-    public ResponseEntity<VisualizationDto> visualize(@PathVariable Long id, Authentication authentication) {
-        UserAccount user = requireUser(authentication);
+    public ResponseEntity<VisualizationDto> visualize(@PathVariable Long id, @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
         var vis = dreamService.requestVisualization(id, user);
         return ResponseEntity.accepted().body(VisualizationMapper.toDto(vis));
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/visualizations")
-    public ResponseEntity<List<VisualizationDto>> visualizations(@PathVariable Long id, Authentication authentication) {
-        UserAccount user = requireUser(authentication);
+    public ResponseEntity<List<VisualizationDto>> visualizations(@PathVariable Long id, @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
         var list = dreamService.getVisualizations(id, user).stream()
                 .map(VisualizationMapper::toDto)
                 .toList();
         return ResponseEntity.ok(list);
     }
 
-    private UserAccount requireUser(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof JwtUserDetails details)) {
-            throw new IllegalArgumentException("Unauthorized");
-        }
+    private UserAccount requireUser(JwtUserDetails details) {
         return userAccountService.findById(details.userId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 }

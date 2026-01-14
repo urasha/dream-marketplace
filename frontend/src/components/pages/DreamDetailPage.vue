@@ -1,107 +1,116 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { dreams } from '../../data/mockData'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeft, Loader, CheckCircle } from 'lucide-vue-next'
+import { useDreamsStore } from '../../stores/dreams'
 
 const props = defineProps({
   dreamId: { type: Number, default: null },
 })
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
+const dreamsStore = useDreamsStore()
 
-const generationStatus = ref('idle')
+const dream = ref(null)
+const visualizations = ref([])
+const loading = ref(true)
+const visLoading = ref(false)
+const requestError = ref('')
 const selectedVisualization = ref(null)
 
-const dream = computed(() => dreams.find((d) => d.id === props.dreamId))
+const hasVisualizations = computed(() => visualizations.value.length > 0)
+const readyVisualizations = computed(() => visualizations.value.filter((v) => v.status === 'READY' || v.status === 'ACCEPTED'))
 
-const hasVisualizations = computed(() => dream.value?.visualizations?.length > 0)
-const hasReadyVisualizations = computed(() => dream.value?.visualizations?.some((v) => v.status === 'ready'))
-
-const handleRequestGeneration = () => {
-  generationStatus.value = 'processing'
-  setTimeout(() => {
-    generationStatus.value = 'ready'
-  }, 3000)
+const loadDream = async () => {
+  loading.value = true
+  requestError.value = ''
+  try {
+    if (dreamsStore.state.items.length === 0) {
+      await dreamsStore.loadDreams()
+    }
+    dream.value = dreamsStore.state.items.find((d) => d.id === props.dreamId) || null
+    if (dream.value) {
+      visLoading.value = true
+      visualizations.value = await dreamsStore.loadVisualizations(dream.value.id)
+    }
+  } catch (err) {
+    requestError.value = err?.data?.message || 'Не удалось загрузить данные'
+  } finally {
+    loading.value = false
+    visLoading.value = false
+  }
 }
+
+const handleRequestGeneration = async () => {
+  if (!dream.value) return
+  requestError.value = ''
+  visLoading.value = true
+  try {
+    const created = await dreamsStore.requestDreamVisualization(dream.value.id)
+    visualizations.value = [created, ...visualizations.value]
+  } catch (err) {
+    requestError.value = err?.data?.message || 'Не удалось запросить визуализацию'
+  } finally {
+    visLoading.value = false
+  }
+}
+
+onMounted(loadDream)
 </script>
 
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
     <button
-      @click="emit('navigate', 'profile')"
+      @click="router.push({ name: 'profile' })"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />
       Назад
     </button>
 
-    <template v-if="dream">
+    <div v-if="loading" class="text-gray-600">Загрузка...</div>
+    <template v-else-if="dream">
       <div class="mb-8">
         <div class="flex items-start justify-between mb-4">
           <h1>{{ dream.title }}</h1>
           <div class="px-3 py-1 bg-gray-200 border border-gray-400">
-            {{ dream.isPrivate ? 'Приватный' : 'Публичный' }}
+            {{ dream.privacy === 'PRIVATE' ? 'Приватный' : 'Публичный' }}
           </div>
         </div>
 
-        <div class="text-gray-600 mb-4">{{ dream.date }}</div>
-
-        <div class="flex flex-wrap gap-2 mb-6">
-          <span v-for="(tag, index) in dream.tags" :key="index" class="px-3 py-1 bg-gray-200 border border-gray-400">
-            {{ tag }}
-          </span>
-        </div>
+        <div class="text-gray-600 mb-4">{{ dream.createdAt }}</div>
 
         <div class="whitespace-pre-line text-gray-800 leading-relaxed">
-          {{ dream.fullText }}
+          {{ dream.content }}
         </div>
       </div>
 
       <div class="border-t-2 border-gray-300 pt-8">
-        <h2 class="mb-6">Визуализации</h2>
-
-        <div v-if="generationStatus === 'processing'" class="p-12 bg-gray-100 border-2 border-gray-300 flex flex-col items-center justify-center">
-          <Loader class="w-12 h-12 animate-spin mb-4" />
-          <h3 class="mb-2">Генерация в процессе</h3>
-          <p class="text-gray-600">Создаём визуализации для вашего сна...</p>
-          <div class="w-full max-w-md mt-6 bg-gray-300 h-2">
-            <div class="bg-black h-full w-2/3 transition-all duration-300" />
-          </div>
+        <div class="flex items-center gap-3 mb-4">
+          <h2>Визуализации</h2>
+          <Loader v-if="visLoading" class="w-5 h-5 animate-spin text-gray-500" />
+          <span v-if="requestError" class="text-red-600">{{ requestError }}</span>
         </div>
 
-        <div v-else-if="generationStatus === 'ready' || hasReadyVisualizations" class="space-y-6">
-          <div class="flex items-center gap-3 p-4 bg-green-100 border-2 border-green-600">
-            <CheckCircle class="w-6 h-6" />
+        <div v-if="hasVisualizations" class="space-y-4">
+          <div
+            v-for="viz in visualizations"
+            :key="viz.id"
+            class="p-4 border border-gray-200 rounded-lg flex items-center justify-between"
+          >
             <div>
-              <h3>Визуализации готовы</h3>
-              <p class="text-gray-700">Выберите вариант для создания лота</p>
+              <div class="font-medium">Визуализация #{{ viz.id }}</div>
+              <div class="text-gray-600 text-sm">Статус: {{ viz.status }}</div>
+              <div v-if="viz.mime" class="text-gray-600 text-sm">{{ viz.mime }}</div>
             </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button
-              v-for="vizId in [1, 2, 3]"
-              :key="vizId"
-              @click="selectedVisualization = vizId"
-              class="border-4 transition-colors"
-              :class="selectedVisualization === vizId ? 'border-black' : 'border-gray-300 hover:border-gray-500'"
+              v-if="viz.status === 'READY'"
+              @click="selectedVisualization = viz.id; router.push({ name: 'create-lot' })"
+              class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
-              <div class="w-full aspect-[4/3] bg-gray-200 flex items-center justify-center">
-                <div class="text-center">
-                  <div class="text-gray-400 mb-2">400×300</div>
-                  <div class="text-gray-600">viz_{{ vizId }}</div>
-                </div>
-              </div>
+              Создать лот
             </button>
           </div>
-
-          <button
-            v-if="selectedVisualization"
-            @click="emit('navigate', 'create-lot')"
-            class="w-full md:w-auto px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
-          >
-            Создать лот из выбранной визуализации
-          </button>
         </div>
 
         <div v-else class="p-12 bg-gray-100 border-2 border-gray-300 text-center">
@@ -110,9 +119,15 @@ const handleRequestGeneration = () => {
           <button
             @click="handleRequestGeneration"
             class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
+            :disabled="visLoading"
           >
-            Запросить генерацию
+            {{ visLoading ? 'Отправляем...' : 'Запросить генерацию' }}
           </button>
+        </div>
+
+        <div v-if="readyVisualizations.length" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+          <CheckCircle class="w-5 h-5 text-green-600" />
+          <div class="text-gray-700">Есть готовые визуализации, выберите любую для создания лота.</div>
         </div>
       </div>
     </template>

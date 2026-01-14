@@ -1,22 +1,92 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { User, Plus } from 'lucide-vue-next'
-import { userLots, userTransactions, dreams } from '../../data/mockData'
+import { userLots, userTransactions } from '../../data/mockData'
 import DreamCard from '../cards/DreamCard.vue'
+import { useSessionStore } from '../../stores/session'
+import { useDreamsStore } from '../../stores/dreams'
 
 const props = defineProps({
   userBalance: { type: Number, required: true },
 })
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
+
+const session = useSessionStore()
+const dreamsStore = useDreamsStore()
 
 const activeTab = ref('dreams')
+const updateStatus = ref('idle')
+const updateError = ref('')
 
 const tabs = [
   { id: 'dreams', label: 'Мои сны' },
   { id: 'lots', label: 'Мои лоты' },
   { id: 'purchases', label: 'Мои покупки' },
 ]
+
+const displayName = computed(() => session.state.profile?.username || '—')
+const displayEmail = computed(() => session.state.profile?.email || '—')
+
+const usernameInput = ref('')
+const emailInput = ref('')
+
+const dreams = computed(() => dreamsStore.state.items)
+const dreamsLoading = computed(() => dreamsStore.state.loading)
+const profileLoading = computed(() => session.state.loading)
+
+const formatDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU')
+}
+
+const dreamCards = computed(() =>
+  dreams.value.map((dream) => ({
+    id: dream.id,
+    title: dream.title,
+    date: formatDate(dream.createdAt),
+    tags: [],
+    isPrivate: dream.privacy === 'PRIVATE',
+  }))
+)
+
+onMounted(async () => {
+  if (!session.state.profile) {
+    await session.loadProfile().catch(() => {})
+  }
+  usernameInput.value = session.state.profile?.username || ''
+  emailInput.value = session.state.profile?.email || ''
+  await dreamsStore.loadDreams().catch(() => {})
+})
+
+const handleUpdateProfile = async () => {
+  updateStatus.value = 'idle'
+  updateError.value = ''
+  const payload = {
+    username: usernameInput.value.trim() || undefined,
+    email: emailInput.value.trim() || undefined,
+  }
+  if (!payload.username && !payload.email) {
+    updateStatus.value = 'error'
+    updateError.value = 'Укажите имя или email'
+    return
+  }
+  updateStatus.value = 'saving'
+  try {
+    await session.updateProfile(payload)
+    updateStatus.value = 'success'
+  } catch (err) {
+    updateStatus.value = 'error'
+    updateError.value = err?.data?.message || 'Не удалось обновить профиль'
+  }
+}
+
+const handleLogout = async () => {
+  await session.logout()
+  router.push({ name: 'home' })
+}
 </script>
 
 <template>
@@ -29,12 +99,20 @@ const tabs = [
           <User class="w-12 h-12 text-white" />
         </div>
         <div class="flex-1">
-          <h2 class="mb-2">Иван Петров</h2>
-          <div class="text-gray-600 mb-4">ivan.petrov@example.com</div>
-          <p class="text-gray-700 mb-4">
-            Художник-визуализатор, работаю с образами из сновидений. Создаю уникальные арт-работы на основе подсознательных переживаний.
-          </p>
-          <div class="flex items-center gap-6">
+          <div class="flex items-center gap-3 mb-4">
+            <h2 class="text-xl font-semibold">{{ displayName }}</h2>
+            <span v-if="profileLoading" class="text-sm text-gray-500">Загрузка...</span>
+          </div>
+          <div class="text-gray-700 mb-4">{{ displayEmail }}</div>
+
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-red-500 hover:text-red-600 transition-colors"
+          >
+            Выйти
+          </button>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <div class="text-gray-600">Баланс</div>
               <div class="text-violet-600">{{ userBalance }} ₽</div>
@@ -49,6 +127,42 @@ const tabs = [
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+      <h3 class="mb-4">Редактирование профиля</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block mb-2 text-gray-700">Имя</label>
+          <input
+            v-model="usernameInput"
+            type="text"
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            :disabled="profileLoading"
+          />
+        </div>
+        <div>
+          <label class="block mb-2 text-gray-700">Email</label>
+          <input
+            v-model="emailInput"
+            type="email"
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            :disabled="profileLoading"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 mt-4">
+        <button
+          @click="handleUpdateProfile"
+          class="px-6 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50"
+          :disabled="profileLoading || updateStatus === 'saving'"
+        >
+          {{ updateStatus === 'saving' ? 'Сохраняем...' : 'Сохранить' }}
+        </button>
+        <span v-if="updateStatus === 'success'" class="text-green-600">Сохранено</span>
+        <span v-if="updateStatus === 'error'" class="text-red-600">{{ updateError }}</span>
       </div>
     </div>
 
@@ -71,19 +185,21 @@ const tabs = [
       <div class="flex items-center justify-between mb-6">
         <h3>Мои записи снов</h3>
         <button
-          @click="emit('navigate', 'create-dream')"
+          @click="router.push({ name: 'create-dream' })"
           class="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
         >
           <Plus class="w-4 h-4" />
           Создать запись
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div v-if="dreamsLoading" class="text-gray-600">Загружаем сны...</div>
+      <div v-else-if="dreamCards.length === 0" class="text-gray-600">Сны пока не созданы</div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DreamCard
-          v-for="dream in dreams"
+          v-for="dream in dreamCards"
           :key="dream.id"
           v-bind="dream"
-          @click="emit('navigate', 'dream-detail', dream.id)"
+          @click="router.push({ name: 'dream-detail', params: { id: dream.id } })"
         />
       </div>
     </div>
@@ -148,7 +264,7 @@ const tabs = [
               </div>
             </div>
             <button
-              @click="emit('navigate', 'lot-detail', transaction.lotId)"
+              @click="router.push({ name: 'lot-detail', params: { id: transaction.lotId } })"
               class="w-full md:w-auto px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
             >
               Открыть лот

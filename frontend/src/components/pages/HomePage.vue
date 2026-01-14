@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ChevronLeft, ChevronRight, X, Search } from 'lucide-vue-next'
 import LotCard from '../cards/LotCard.vue'
 import { lots } from '../../data/mockData'
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
 
 const selectedCategory = ref('all')
 const selectedTags = ref([])
@@ -138,7 +139,7 @@ const goToPage = (page) => {
         v-for="lot in displayedLots"
         :key="lot.id"
         v-bind="lot"
-        @click="() => emit('navigate', 'lot-detail', lot.id)"
+        @click="() => router.push({ name: 'lot-detail', params: { id: lot.id } })"
       />
     </div>
 

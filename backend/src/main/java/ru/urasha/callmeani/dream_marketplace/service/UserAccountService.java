@@ -1,7 +1,9 @@
 package ru.urasha.callmeani.dream_marketplace.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
 import ru.urasha.callmeani.dream_marketplace.models.enums.UserRole;
 import ru.urasha.callmeani.dream_marketplace.repositories.UserAccountRepository;
@@ -42,5 +44,28 @@ public class UserAccountService {
 
     public Optional<UserAccount> findById(Long id) {
         return userRepository.findById(id);
+    }
+
+    @Transactional
+    public UserAccount updateProfile(Long userId, String username, String email) {
+        UserAccount user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        String trimmedEmail = email != null ? email.trim() : null;
+        if (trimmedEmail != null && !trimmedEmail.isBlank()) {
+            userRepository.findByEmail(trimmedEmail)
+                    .filter(other -> !other.getId().equals(userId))
+                    .ifPresent(other -> {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
+                    });
+            user.setEmail(trimmedEmail);
+        }
+
+        String trimmedUsername = username != null ? username.trim() : null;
+        if (trimmedUsername != null && !trimmedUsername.isBlank()) {
+            user.setUsername(trimmedUsername);
+        }
+
+        return userRepository.save(user);
     }
 }

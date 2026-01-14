@@ -1,29 +1,51 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { useDreamsStore } from '../../stores/dreams'
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
 
 const title = ref('')
 const content = ref('')
 const tags = ref('')
 const isPrivate = ref(false)
 const status = ref('idle')
+const errorMessage = ref('')
 
-const handleSubmit = () => {
+const dreamsStore = useDreamsStore()
+
+const handleSubmit = async () => {
+  errorMessage.value = ''
   if (!title.value || !content.value) {
     status.value = 'error'
+    errorMessage.value = 'Заполните название и описание'
     return
   }
-  status.value = 'success'
-  setTimeout(() => emit('navigate', 'profile'), 2000)
+
+  status.value = 'saving'
+  try {
+    const payload = {
+      title: title.value,
+      content: content.value,
+      privacy: isPrivate.value ? 'PRIVATE' : 'PUBLIC',
+      categoryId: null,
+      tagIds: [],
+    }
+    const created = await dreamsStore.createDream(payload)
+    status.value = 'success'
+    router.push({ name: 'dream-detail', params: { id: created.id } })
+  } catch (err) {
+    status.value = 'error'
+    errorMessage.value = err?.data?.message || 'Не удалось создать сон'
+  }
 }
 </script>
 
 <template>
   <div class="max-w-[800px] mx-auto px-6 py-12">
     <button
-      @click="emit('navigate', 'profile')"
+        @click="router.push({ name: 'profile' })"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-violet-600 transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />
@@ -36,7 +58,7 @@ const handleSubmit = () => {
       <AlertCircle class="w-6 h-6 flex-shrink-0 text-red-600" />
       <div>
         <h3 class="text-red-900">Ошибка валидации</h3>
-        <p class="text-red-700">Пожалуйста, заполните название и описание сна</p>
+        <p class="text-red-700">{{ errorMessage || 'Пожалуйста, заполните название и описание сна' }}</p>
       </div>
     </div>
 
@@ -93,11 +115,12 @@ const handleSubmit = () => {
         <button
           @click="handleSubmit"
           class="px-8 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+          :disabled="status === 'saving'"
         >
-          Сохранить запись
+          {{ status === 'saving' ? 'Сохраняем...' : 'Сохранить запись' }}
         </button>
         <button
-          @click="emit('navigate', 'profile')"
+          @click="router.push({ name: 'profile' })"
           class="px-8 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Отмена

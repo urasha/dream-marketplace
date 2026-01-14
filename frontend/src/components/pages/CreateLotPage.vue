@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle, Clock } from 'lucide-vue-next'
 
-const emit = defineEmits(['navigate'])
+const router = useRouter()
 
 const title = ref('Полёт над ночным городом')
 const description = ref('Визуализация ощущения свободного полёта над огнями большого города')
@@ -33,10 +34,10 @@ const handlePublish = () => {
         <h1 class="mb-4">Лот успешно опубликован</h1>
         <p class="text-gray-700 mb-6">Ваша визуализация прошла модерацию и теперь доступна в маркетплейсе</p>
         <div class="flex gap-4 justify-center">
-          <button @click="emit('navigate', 'home')" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
+          <button @click="router.push({ name: 'home' })" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
             Перейти в маркетплейс
           </button>
-          <button @click="emit('navigate', 'profile')" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
+          <button @click="router.push({ name: 'profile' })" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
             Мои лоты
           </button>
         </div>
@@ -63,7 +64,7 @@ const handlePublish = () => {
           <button @click="status = 'form'" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
             Исправить и отправить заново
           </button>
-          <button @click="emit('navigate', 'profile')" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
+          <button @click="router.push({ name: 'profile' })" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
             Вернуться к снам
           </button>
         </div>
@@ -72,7 +73,7 @@ const handlePublish = () => {
 
     <template v-else>
       <button
-        @click="emit('navigate', 'dream-detail', 1)"
+        @click="router.push({ name: 'dream-detail', params: { id: 1 } })"
         class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
       >
         <ArrowLeft class="w-5 h-5" />
@@ -171,7 +172,7 @@ const handlePublish = () => {
             Опубликовать лот
           </button>
           <button
-            @click="emit('navigate', 'dream-detail', 1)"
+            @click="router.push({ name: 'dream-detail', params: { id: 1 } })"
             class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
           >
             Отмена
