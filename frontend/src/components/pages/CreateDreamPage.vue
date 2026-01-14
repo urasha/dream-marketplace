@@ -8,7 +8,6 @@ const router = useRouter()
 
 const title = ref('')
 const content = ref('')
-const tags = ref('')
 const isPrivate = ref(false)
 const status = ref('idle')
 const errorMessage = ref('')
@@ -88,16 +87,6 @@ const handleSubmit = async () => {
           rows="12"
           placeholder="Опишите ваш сон подробно. Чем детальнее описание, тем лучше получится визуализация..."
           class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
-        />
-      </div>
-
-      <div>
-        <label class="block mb-2">Теги</label>
-        <input
-          v-model="tags"
-          type="text"
-          placeholder="полёт, город, свобода (через запятую)"
-          class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         />
       </div>
 

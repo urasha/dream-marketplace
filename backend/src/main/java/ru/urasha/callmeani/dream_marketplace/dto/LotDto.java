@@ -13,7 +13,11 @@ public record LotDto(
         String description,
         BigDecimal price,
         LotStatus status,
+        Long authorId,
         String authorName,
+        Long categoryId,
+        String categoryName,
+        java.util.List<String> tags,
         LocalDateTime submittedAt,
         LocalDateTime reviewedAt,
         String moderationReason
