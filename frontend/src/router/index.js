@@ -16,7 +16,15 @@ export const router = createRouter({
     { path: '/', name: 'home', component: HomePage },
     { path: '/dreams/create', name: 'create-dream', component: CreateDreamPage },
     { path: '/dreams/:id', name: 'dream-detail', component: DreamDetailPage, props: (route) => ({ dreamId: Number(route.params.id) || null }) },
-    { path: '/lots/create', name: 'create-lot', component: CreateLotPage },
+    {
+      path: '/lots/create',
+      name: 'create-lot',
+      component: CreateLotPage,
+      props: (route) => ({
+        dreamId: route.query.dreamId ? Number(route.query.dreamId) : null,
+        visualizationId: route.query.visualizationId ? Number(route.query.visualizationId) : null,
+      }),
+    },
     { path: '/lots/:id', name: 'lot-detail', component: LotDetailPage, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/purchase/:id', name: 'purchase', component: PurchaseFlow, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/profile', name: 'profile', component: ProfilePage },

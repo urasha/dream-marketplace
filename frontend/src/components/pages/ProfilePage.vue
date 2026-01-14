@@ -1,22 +1,25 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { User, Plus } from 'lucide-vue-next'
-import { userLots, userTransactions } from '../../data/mockData'
+import { userTransactions } from '../../data/mockData'
 import DreamCard from '../cards/DreamCard.vue'
 import { useSessionStore } from '../../stores/session'
 import { useDreamsStore } from '../../stores/dreams'
+import { useLotsStore } from '../../stores/lots'
 
 const props = defineProps({
   userBalance: { type: Number, required: true },
 })
 
 const router = useRouter()
+const route = useRoute()
 
 const session = useSessionStore()
 const dreamsStore = useDreamsStore()
+const lotsStore = useLotsStore()
 
-const activeTab = ref('dreams')
+const activeTab = ref(route.query.tab === 'lots' ? 'lots' : 'dreams')
 const updateStatus = ref('idle')
 const updateError = ref('')
 
@@ -35,6 +38,7 @@ const emailInput = ref('')
 const dreams = computed(() => dreamsStore.state.items)
 const dreamsLoading = computed(() => dreamsStore.state.loading)
 const profileLoading = computed(() => session.state.loading)
+const myLots = computed(() => lotsStore.state.mine)
 
 const formatDate = (value) => {
   if (!value) return ''
@@ -59,6 +63,7 @@ onMounted(async () => {
   usernameInput.value = session.state.profile?.username || ''
   emailInput.value = session.state.profile?.email || ''
   await dreamsStore.loadDreams().catch(() => {})
+  await lotsStore.loadMyLots().catch(() => {})
 })
 
 const handleUpdateProfile = async () => {
@@ -120,7 +125,7 @@ const handleLogout = async () => {
             </div>
             <div>
               <div class="text-gray-600">Лотов создано</div>
-              <div>{{ userLots.length }}</div>
+              <div>{{ myLots.length }}</div>
             </div>
             <div>
               <div class="text-gray-600">Покупок</div>
@@ -207,41 +212,39 @@ const handleLogout = async () => {
 
     <div v-else-if="activeTab === 'lots'">
       <h3 class="mb-6">Мои лоты</h3>
-      <div class="space-y-4">
-        <div
-          v-for="lot in userLots"
+      <div v-if="lotsStore.state.loading" class="text-gray-600">Загружаем лоты...</div>
+      <div v-else-if="myLots.length === 0" class="text-gray-600">Лоты пока не созданы</div>
+      <div v-else class="space-y-4">
+        <button
+          v-for="lot in myLots"
           :key="lot.id"
-          class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+          class="w-full text-left p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+          @click="router.push({ name: 'lot-detail', params: { id: lot.id }, query: { from: 'profile-lots' } })"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <h3 class="mb-3">{{ lot.title }}</h3>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <div class="text-gray-600">Цена</div>
                   <div>{{ lot.price }} ₽</div>
                 </div>
                 <div>
                   <div class="text-gray-600">Статус</div>
-                  <span
-                    class="inline-block px-3 py-1 rounded-full"
-                    :class="lot.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
-                  >
-                    {{ lot.status === 'published' ? 'Опубликован' : 'На модерации' }}
+                  <span class="inline-block px-3 py-1 rounded-full"
+                    :class="lot.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                    {{ lot.status }}
                   </span>
                 </div>
-                <div v-if="lot.sales > 0">
-                  <div class="text-gray-600">Продаж</div>
-                  <div>{{ lot.sales }}</div>
-                </div>
-                <div v-if="lot.sales > 0">
-                  <div class="text-gray-600">Доход</div>
-                  <div class="text-violet-600">{{ lot.revenue }} ₽</div>
+                <div>
+                  <div class="text-gray-600">Дата</div>
+                  <div>{{ lot.submittedAt }}</div>
                 </div>
               </div>
             </div>
+            <span class="text-violet-600">Открыть →</span>
           </div>
-        </div>
+        </button>
       </div>
     </div>
 

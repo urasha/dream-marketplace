@@ -1,95 +1,111 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, CheckCircle, AlertCircle, Clock } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
+import { useLotsStore } from '../../stores/lots'
+
+const props = defineProps({
+  dreamId: { type: Number, default: null },
+  visualizationId: { type: Number, default: null },
+})
 
 const router = useRouter()
+const lotsStore = useLotsStore()
 
-const title = ref('Полёт над ночным городом')
-const description = ref('Визуализация ощущения свободного полёта над огнями большого города')
-const price = ref('300')
-const license = ref('personal')
+const title = ref('')
+const description = ref('')
+const price = ref('')
 const status = ref('form')
-const rejectionReason = ref('')
+const errorMessage = ref('')
+const createdLotId = ref(null)
 
-const handlePublish = () => {
-  const isApproved = Math.random() > 0.5
-  if (isApproved) {
-    status.value = 'published'
+const hasContext = computed(() => Boolean(props.dreamId && props.visualizationId))
+
+const goBack = () => {
+  if (props.dreamId) {
+    router.push({ name: 'dream-detail', params: { id: props.dreamId } })
   } else {
-    status.value = 'moderation'
-    setTimeout(() => {
-      status.value = 'rejected'
-      rejectionReason.value = 'Изображение не соответствует описанию сна. Пожалуйста, используйте другую визуализацию.'
-    }, 3000)
+    router.push({ name: 'profile' })
+  }
+}
+
+const handlePublish = async () => {
+  if (!hasContext.value) {
+    status.value = 'error'
+    errorMessage.value = 'Нет данных о выбранной визуализации'
+    return
+  }
+  if (!title.value || !price.value) {
+    status.value = 'error'
+    errorMessage.value = 'Укажите название и цену'
+    return
+  }
+
+  status.value = 'loading'
+  errorMessage.value = ''
+  try {
+    const payload = {
+      visualizationId: props.visualizationId,
+      title: title.value,
+      description: description.value || null,
+      price: Number(price.value),
+    }
+    const lot = await lotsStore.createLot(payload)
+    createdLotId.value = lot.id
+    status.value = 'success'
+  } catch (err) {
+    status.value = 'error'
+    errorMessage.value = err?.data?.message || 'Не удалось создать лот'
   }
 }
 </script>
 
 <template>
   <div class="max-w-[800px] mx-auto px-6 py-12">
-    <template v-if="status === 'published'">
-      <div class="p-12 text-center border-2 border-green-600 bg-green-50">
-        <CheckCircle class="w-16 h-16 mx-auto mb-4" />
-        <h1 class="mb-4">Лот успешно опубликован</h1>
-        <p class="text-gray-700 mb-6">Ваша визуализация прошла модерацию и теперь доступна в маркетплейсе</p>
-        <div class="flex gap-4 justify-center">
-          <button @click="router.push({ name: 'home' })" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
-            Перейти в маркетплейс
-          </button>
-          <button @click="router.push({ name: 'profile' })" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
-            Мои лоты
-          </button>
+    <button
+      @click="goBack"
+      class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
+    >
+      <ArrowLeft class="w-5 h-5" />
+      Назад
+    </button>
+
+    <h1 class="mb-8">Создать лот</h1>
+
+    <div v-if="status === 'success'" class="p-12 text-center border-2 border-green-600 bg-green-50">
+      <CheckCircle class="w-16 h-16 mx-auto mb-4" />
+      <h2 class="mb-4">Лот создан</h2>
+      <p class="text-gray-700 mb-6">Ваша визуализация опубликована как лот.</p>
+      <div class="flex gap-4 justify-center">
+        <button
+          v-if="createdLotId"
+          @click="router.push({ name: 'lot-detail', params: { id: createdLotId } })"
+          class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
+        >
+          Открыть лот
+        </button>
+        <button
+          @click="router.push({ name: 'profile' })"
+          class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
+        >
+          Профиль
+        </button>
+      </div>
+    </div>
+
+    <div v-else>
+      <div v-if="status === 'error'" class="mb-6 p-4 bg-red-50 border-2 border-red-200 flex items-start gap-3">
+        <AlertCircle class="w-6 h-6 flex-shrink-0 text-red-600" />
+        <div>
+          <h3 class="text-red-900">Не удалось создать лот</h3>
+          <p class="text-red-700">{{ errorMessage }}</p>
         </div>
       </div>
-    </template>
-
-    <template v-else-if="status === 'moderation'">
-      <div class="p-12 text-center border-2 border-yellow-600 bg-yellow-50">
-        <Clock class="w-16 h-16 mx-auto mb-4 animate-pulse" />
-        <h1 class="mb-4">Лот на модерации</h1>
-        <p class="text-gray-700">Ваша визуализация отправлена на проверку модератором. Это может занять некоторое время.</p>
-      </div>
-    </template>
-
-    <template v-else-if="status === 'rejected'">
-      <div class="p-12 border-2 border-red-600 bg-red-50">
-        <AlertCircle class="w-16 h-16 mx-auto mb-4" />
-        <h1 class="mb-4 text-center">Лот отклонён модератором</h1>
-        <div class="mb-6 p-4 bg-white border border-red-300">
-          <h3 class="mb-2">Причина отклонения:</h3>
-          <p class="text-gray-700">{{ rejectionReason }}</p>
-        </div>
-        <div class="flex gap-4 justify-center">
-          <button @click="status = 'form'" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
-            Исправить и отправить заново
-          </button>
-          <button @click="router.push({ name: 'profile' })" class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors">
-            Вернуться к снам
-          </button>
-        </div>
-      </div>
-    </template>
-
-    <template v-else>
-      <button
-        @click="router.push({ name: 'dream-detail', params: { id: 1 } })"
-        class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
-      >
-        <ArrowLeft class="w-5 h-5" />
-        Назад к сну
-      </button>
-
-      <h1 class="mb-8">Создать лот</h1>
 
       <div class="mb-8 p-6 bg-gray-50 border-2 border-gray-300">
-        <h3 class="mb-4">Выбранная визуализация</h3>
-        <div class="w-full aspect-[4/3] bg-gray-200 border-2 border-gray-400 flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-gray-400 mb-2">400×300</div>
-            <div class="text-gray-600">viz_3</div>
-          </div>
-        </div>
+        <h3 class="mb-2">Контекст</h3>
+        <p class="text-gray-700" v-if="hasContext">Сон #{{ dreamId }} · Визуализация #{{ visualizationId }}</p>
+        <p class="text-red-700" v-else>Не выбрана визуализация — вернитесь и выберите готовый вариант.</p>
       </div>
 
       <div class="space-y-6">
@@ -98,15 +114,17 @@ const handlePublish = () => {
           <input
             v-model="title"
             type="text"
+            placeholder="Например: Полёт над ночным городом"
             class="w-full px-4 py-3 border-2 border-gray-300 focus:border-black outline-none"
           />
         </div>
 
         <div>
-          <label class="block mb-2">Краткое описание *</label>
+          <label class="block mb-2">Описание</label>
           <textarea
             v-model="description"
             rows="4"
+            placeholder="Расскажите, что покупатель получит вместе с визуализацией"
             class="w-full px-4 py-3 border-2 border-gray-300 focus:border-black outline-none resize-none"
           />
         </div>
@@ -116,69 +134,28 @@ const handlePublish = () => {
           <input
             v-model="price"
             type="number"
+            min="1"
+            step="0.01"
             class="w-full px-4 py-3 border-2 border-gray-300 focus:border-black outline-none"
           />
         </div>
 
-        <div>
-          <label class="block mb-2">Условия лицензии *</label>
-          <div class="space-y-3">
-            <label class="flex items-start gap-3 p-4 border-2 border-gray-300 cursor-pointer hover:border-black transition-colors">
-              <input
-                v-model="license"
-                type="radio"
-                name="license"
-                value="personal"
-                class="mt-1"
-              />
-              <div>
-                <div class="mb-1">Личное использование</div>
-                <div class="text-gray-600">Только для некоммерческих целей</div>
-              </div>
-            </label>
-
-            <label class="flex items-start gap-3 p-4 border-2 border-gray-300 cursor-pointer hover:border-black transition-colors">
-              <input
-                v-model="license"
-                type="radio"
-                name="license"
-                value="commercial"
-                class="mt-1"
-              />
-              <div>
-                <div class="mb-1">Коммерческая лицензия</div>
-                <div class="text-gray-600">Разрешено использование в коммерческих проектах</div>
-              </div>
-            </label>
-
-            <label class="flex items-start gap-3 p-4 border-2 border-gray-300 cursor-pointer hover:border-black transition-colors">
-              <input
-                v-model="license"
-                type="radio"
-                name="license"
-                value="full"
-                class="mt-1"
-              />
-              <div>
-                <div class="mb-1">Полная лицензия</div>
-                <div class="text-gray-600">Включая право на модификацию и перепродажу</div>
-              </div>
-            </label>
-          </div>
-        </div>
-
         <div class="pt-6 border-t-2 border-gray-300 flex gap-4">
-          <button @click="handlePublish" class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors">
-            Опубликовать лот
+          <button
+            @click="handlePublish"
+            :disabled="status === 'loading'"
+            class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-500"
+          >
+            {{ status === 'loading' ? 'Сохраняем...' : 'Опубликовать лот' }}
           </button>
           <button
-            @click="router.push({ name: 'dream-detail', params: { id: 1 } })"
+            @click="goBack"
             class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
           >
             Отмена
           </button>
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
