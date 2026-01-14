@@ -12,6 +12,10 @@ public final class LotMapper {
     }
 
     public static LotDto toDto(Lot lot) {
+        return toDto(lot, 0d, 0L);
+    }
+
+    public static LotDto toDto(Lot lot, double ratingAverage, long ratingCount) {
         var dream = lot.getDreamRecord();
         var user = dream != null ? dream.getUser() : null;
         var category = dream != null ? dream.getCategory() : null;
@@ -34,6 +38,8 @@ public final class LotMapper {
             category != null ? category.getId() : null,
             category != null ? category.getName() : null,
             tags,
+                ratingAverage,
+                ratingCount,
                 lot.getSubmittedAt(),
                 lot.getReviewedAt(),
                 lot.getModerationReason()
