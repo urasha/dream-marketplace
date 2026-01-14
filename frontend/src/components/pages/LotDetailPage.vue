@@ -51,12 +51,23 @@ onMounted(() => {
 
         <div>
           <h1 class="mb-4">{{ lot.title }}</h1>
-          <div class="text-gray-600 mb-4">Автор: {{ lot.authorName || '—' }}</div>
+          <div class="text-gray-600 mb-2">Автор: {{ lot.authorName || '—' }}</div>
+          <div v-if="lot.categoryName" class="text-gray-500 mb-4">Категория: {{ lot.categoryName }}</div>
           <div class="mb-6 text-xl font-semibold">{{ lot.price }} ₽</div>
 
           <div class="p-6 bg-gray-50 border-2 border-gray-300 mb-6">
             <h3 class="mb-3">Описание</h3>
             <p class="text-gray-700">{{ lot.description || 'Описание не указано' }}</p>
+          </div>
+
+          <div v-if="lot.tags?.length" class="mb-6 flex flex-wrap gap-2">
+            <span
+              v-for="(tag, idx) in lot.tags"
+              :key="idx"
+              class="px-3 py-1 bg-violet-50 text-violet-700 rounded-full border border-violet-100 text-sm"
+            >
+              {{ tag }}
+            </span>
           </div>
 
           <button

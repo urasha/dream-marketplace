@@ -7,6 +7,7 @@ const props = defineProps({
   description: { type: String, default: '' },
   price: { type: [Number, String], default: null },
   author: { type: String, default: 'Автор' },
+  category: { type: String, default: '' },
   rating: { type: Number, default: 0 },
   tags: { type: Array, default: () => [] },
 })
@@ -26,6 +27,10 @@ const emit = defineEmits(['click'])
     <div class="p-4">
       <h3 class="mb-2">{{ title }}</h3>
       <p class="text-gray-600 mb-3 line-clamp-2">{{ description }}</p>
+
+      <div v-if="category" class="mb-2 text-xs font-semibold uppercase text-violet-700">
+        {{ category }}
+      </div>
 
       <div class="flex flex-wrap gap-2 mb-3">
         <span

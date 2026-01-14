@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
+import { searchTags } from '../../api/tags'
+import { fetchCategories } from '../../api/categories'
 
 const props = defineProps({
   dreamId: { type: Number, default: null },
@@ -18,6 +20,15 @@ const price = ref('')
 const status = ref('form')
 const errorMessage = ref('')
 const createdLotId = ref(null)
+const categories = ref([])
+const selectedCategoryId = ref(null)
+
+const tagsState = reactive({
+  input: '',
+  suggestions: [],
+  suggestionsLoading: false,
+  selected: [],
+})
 
 const hasContext = computed(() => Boolean(props.dreamId && props.visualizationId))
 
@@ -27,6 +38,81 @@ const goBack = () => {
   } else {
     router.push({ name: 'profile' })
   }
+}
+
+let tagSearchTimer = null
+
+onMounted(async () => {
+  await loadCategories()
+})
+
+onUnmounted(() => {
+  if (tagSearchTimer) {
+    clearTimeout(tagSearchTimer)
+  }
+})
+
+watch(
+  () => tagsState.input,
+  (value) => {
+    if (tagSearchTimer) {
+      clearTimeout(tagSearchTimer)
+    }
+    if (!value || !value.trim()) {
+      tagsState.suggestions = []
+      tagsState.suggestionsLoading = false
+      return
+    }
+
+    tagSearchTimer = setTimeout(async () => {
+      tagsState.suggestionsLoading = true
+      try {
+        tagsState.suggestions = await searchTags(value.trim(), 8)
+      } catch (e) {
+        tagsState.suggestions = []
+      } finally {
+        tagsState.suggestionsLoading = false
+      }
+    }, 200)
+  }
+)
+
+const loadCategories = async () => {
+  try {
+    categories.value = await fetchCategories()
+    if (categories.value.length && !selectedCategoryId.value) {
+      selectedCategoryId.value = categories.value[0].id
+    }
+  } catch (e) {
+    categories.value = []
+  }
+}
+
+const addTag = (tag) => {
+  if (!tag || !tag.name) return
+  const exists = tagsState.selected.some(
+    (t) => t.id === tag.id || t.name.toLowerCase() === tag.name.toLowerCase()
+  )
+  if (!exists) {
+    tagsState.selected.push({ id: tag.id || null, name: tag.name })
+  }
+  tagsState.input = ''
+  tagsState.suggestions = []
+  tagsState.suggestionsLoading = false
+}
+
+const addTagFromInput = () => {
+  const raw = tagsState.input
+  if (!raw || !raw.trim()) return
+  const names = raw
+    .split(/[,;]/)
+    .map((n) => n.trim())
+    .filter(Boolean)
+  names.forEach((name) => addTag({ name }))
+}
+
+const removeTag = (name) => {
+  tagsState.selected = tagsState.selected.filter((t) => t.name !== name)
 }
 
 const handlePublish = async () => {
@@ -41,6 +127,9 @@ const handlePublish = async () => {
     return
   }
 
+  // захватываем то, что пользователь успел ввести, даже если не нажал "Добавить"
+  addTagFromInput()
+
   status.value = 'loading'
   errorMessage.value = ''
   try {
@@ -49,13 +138,17 @@ const handlePublish = async () => {
       title: title.value,
       description: description.value || null,
       price: Number(price.value),
+      categoryId: selectedCategoryId.value,
+      tagIds: tagsState.selected.filter((t) => t.id).map((t) => t.id),
+      tagNames: tagsState.selected.filter((t) => !t.id).map((t) => t.name),
     }
     const lot = await lotsStore.createLot(payload)
     createdLotId.value = lot.id
     status.value = 'success'
   } catch (err) {
     status.value = 'error'
-    errorMessage.value = err?.data?.message || 'Не удалось создать лот'
+    errorMessage.value =
+      err?.data?.message || err?.data?.error || err?.message || 'Не удалось создать лот'
   }
 }
 </script>
@@ -138,6 +231,73 @@ const handlePublish = async () => {
             step="0.01"
             class="w-full px-4 py-3 border-2 border-gray-300 focus:border-black outline-none"
           />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block">Категория</label>
+            <button type="button" class="text-sm text-violet-600" @click="loadCategories">Обновить</button>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <label
+              v-for="cat in categories"
+              :key="cat.id"
+              class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:border-violet-400"
+            >
+              <input
+                type="radio"
+                :value="cat.id"
+                v-model="selectedCategoryId"
+                class="text-violet-600 focus:ring-violet-500"
+              />
+              <span class="text-sm">{{ cat.name }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block">Теги</label>
+            <button type="button" class="text-sm text-violet-600" @click="addTagFromInput">Добавить</button>
+          </div>
+          <div class="relative">
+            <input
+              v-model="tagsState.input"
+              type="text"
+              placeholder="Начните вводить тег"
+              class="w-full px-4 py-3 border-2 border-gray-300 focus:border-black outline-none"
+                @keyup.enter.prevent="addTagFromInput"
+                @blur="addTagFromInput"
+            />
+            <div
+              v-if="tagsState.input && (tagsState.suggestionsLoading || tagsState.suggestions.length)"
+              class="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow"
+            >
+              <div v-if="tagsState.suggestionsLoading" class="px-3 py-2 text-gray-500 text-sm">Ищем теги...</div>
+              <button
+                v-for="tag in tagsState.suggestions"
+                :key="tag.id || tag.name"
+                type="button"
+                class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+                @click="addTag(tag)"
+              >
+                {{ tag.name }}
+              </button>
+              <div v-if="!tagsState.suggestionsLoading && !tagsState.suggestions.length" class="px-3 py-2 text-gray-500 text-sm">
+                Ничего не найдено
+              </div>
+            </div>
+          </div>
+          <div v-if="tagsState.selected.length" class="flex flex-wrap gap-2 mt-3">
+            <span
+              v-for="tag in tagsState.selected"
+              :key="tag.id || tag.name"
+              class="px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-sm flex items-center gap-2"
+            >
+              {{ tag.name }}
+              <button type="button" class="text-violet-500" @click="removeTag(tag.name)">×</button>
+            </span>
+          </div>
         </div>
 
         <div class="pt-6 border-t-2 border-gray-300 flex gap-4">

@@ -33,11 +33,14 @@ public class LotController {
                                          @AuthenticationPrincipal JwtUserDetails details) {
         var user = userAccountService.findById(details.userId()).orElseThrow();
         var lot = lotService.createLotFromVisualization(
-                request.visualizationId(),
-                user,
-                request.title(),
-                request.description(),
-                request.price()
+            request.visualizationId(),
+            user,
+            request.title(),
+            request.description(),
+            request.price(),
+            request.categoryId(),
+            request.tagIds(),
+            request.tagNames()
         );
         return ResponseEntity.ok(LotMapper.toDto(lot));
     }
