@@ -23,16 +23,35 @@ const selectedVisualization = ref(null)
 const genTaskId = ref(null)
 const genStatus = ref('')
 const genResultUrl = ref('')
+const genResults = ref([])
+const selectedResult = ref('')
 const pollCount = ref(0)
 const isRequesting = ref(false)
 const maxPolls = imageGenConfig.maxPolls || 60
+const pollIntervalMs = imageGenConfig.pollIntervalMs || 2000
 let pollTimer = null
+
+const statusLabels = {
+  PENDING: 'В очереди на генерацию',
+  PROCESSING: 'В процессе',
+  RUNNING: 'В процессе',
+  DONE: 'Готово',
+  READY: 'Готово',
+  ACCEPTED: 'Принято',
+  FAILED: 'Ошибка',
+  ERROR: 'Ошибка',
+}
+
+const genStatusLabel = computed(() => statusLabels[genStatus.value] || genStatus.value)
+const formatStatus = (status) => statusLabels[status] || status
 
 const hasVisualizations = computed(() => visualizations.value.length > 0)
 const readyVisualizations = computed(() => visualizations.value.filter((v) => v.status === 'READY' || v.status === 'ACCEPTED'))
 const isMock = computed(() => (imageGenConfig.mode || 'mock') === 'mock')
 
 const previewSrc = ref(null)
+
+const storageKey = computed(() => (dream.value ? `dream-gen:${dream.value.id}` : null))
 
 const openPreview = (url) => {
   if (!url) return
@@ -61,6 +80,39 @@ onUnmounted(() => {
   }
 })
 
+const saveGenState = (state) => {
+  if (!storageKey.value) return
+  try {
+    const payload = {
+      taskId: genTaskId.value,
+      status: genStatus.value,
+      results: genResults.value,
+      selected: selectedResult.value,
+      pollCount: pollCount.value,
+      ...state,
+    }
+    localStorage.setItem(storageKey.value, JSON.stringify(payload))
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+const loadGenState = () => {
+  if (!storageKey.value) return null
+  try {
+    const raw = localStorage.getItem(storageKey.value)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch (e) {
+    return null
+  }
+}
+
+const clearGenState = () => {
+  if (!storageKey.value) return
+  localStorage.removeItem(storageKey.value)
+}
+
 const loadDream = async () => {
   loading.value = true
   requestError.value = ''
@@ -72,6 +124,7 @@ const loadDream = async () => {
     if (dream.value) {
       visLoading.value = true
       visualizations.value = await dreamsStore.loadVisualizations(dream.value.id)
+      restoreGenerationState()
     }
   } catch (err) {
     requestError.value = err?.data?.message || 'Не удалось загрузить данные'
@@ -81,12 +134,33 @@ const loadDream = async () => {
   }
 }
 
+const restoreGenerationState = () => {
+  const saved = loadGenState()
+  if (!saved) return
+  genTaskId.value = saved.taskId || null
+  genStatus.value = saved.status || ''
+  genResults.value = saved.results || []
+  selectedResult.value = saved.selected || ''
+  pollCount.value = saved.pollCount || 0
+
+  if (genStatus.value && genStatus.value !== 'DONE' && genStatus.value !== 'FAILED' && genTaskId.value) {
+    isRequesting.value = true
+    if (!pollTimer) {
+      pollTimer = setInterval(checkGenerationStatus, pollIntervalMs)
+    }
+  }
+}
+
 const handleRequestGeneration = async () => {
   if (!dream.value) return
   requestError.value = ''
   genStatus.value = ''
   genResultUrl.value = ''
+  genResults.value = []
+  selectedResult.value = ''
   pollCount.value = 0
+
+  clearGenState()
 
   if (pollTimer) {
     clearInterval(pollTimer)
@@ -95,11 +169,9 @@ const handleRequestGeneration = async () => {
 
   if (isMock.value) {
     genStatus.value = 'DONE'
-    genResultUrl.value = imageGenConfig.mockUrl
-    const saved = await persistVisualization(genResultUrl.value, 'image/png')
-    if (saved) {
-      visualizations.value = [saved, ...visualizations.value]
-    }
+    genResults.value = Array.from({ length: 4 }, (_, i) => `${imageGenConfig.mockUrl}?v=${i + 1}`)
+    selectedResult.value = genResults.value[0]
+    saveGenState({})
     return
   }
 
@@ -109,12 +181,13 @@ const handleRequestGeneration = async () => {
     const resp = await createImageGeneration(payload)
     genStatus.value = resp?.status || 'PENDING'
     genTaskId.value = resp?.id || null
+    saveGenState({})
 
     if (!genTaskId.value) {
       throw new Error('Не получили id задачи генерации')
     }
 
-    pollTimer = setInterval(checkGenerationStatus, 2000)
+    pollTimer = setInterval(checkGenerationStatus, pollIntervalMs)
   } catch (err) {
     requestError.value = err?.data?.message || err.message || 'Не удалось запросить визуализацию'
     isRequesting.value = false
@@ -141,6 +214,29 @@ const persistVisualization = async (filePath, mime) => {
   }
 }
 
+const selectResult = (url) => {
+  selectedResult.value = url
+  saveGenState({})
+}
+
+const saveSelectedResult = async () => {
+  requestError.value = ''
+  if (!selectedResult.value) {
+    requestError.value = 'Выберите вариант изображения'
+    return
+  }
+  const saved = await persistVisualization(selectedResult.value, 'image/png')
+  if (saved) {
+    visualizations.value = [saved, ...visualizations.value]
+  }
+  clearGenState()
+  genResults.value = []
+  selectedResult.value = ''
+  genTaskId.value = null
+  genStatus.value = ''
+  genResultUrl.value = ''
+}
+
 const checkGenerationStatus = async () => {
   if (!genTaskId.value) return
   if (pollCount.value >= maxPolls) {
@@ -155,13 +251,19 @@ const checkGenerationStatus = async () => {
   try {
     const resp = await fetchImageGeneration(genTaskId.value)
     genStatus.value = resp?.status || ''
+    if (Array.isArray(resp?.resultUrls) && resp.resultUrls.length) {
+      genResults.value = resp.resultUrls
+    } else if (resp?.resultUrl) {
+      genResults.value = [resp.resultUrl]
+    }
+    saveGenState({})
 
     if (resp?.status === 'DONE') {
       genResultUrl.value = resp.resultUrl || ''
-      const saved = await persistVisualization(genResultUrl.value, 'image/png')
-      if (saved) {
-        visualizations.value = [saved, ...visualizations.value]
+      if (!genResults.value.length && genResultUrl.value) {
+        genResults.value = [genResultUrl.value]
       }
+      saveGenState({ status: 'DONE' })
       isRequesting.value = false
       clearInterval(pollTimer)
       pollTimer = null
@@ -172,12 +274,14 @@ const checkGenerationStatus = async () => {
       isRequesting.value = false
       clearInterval(pollTimer)
       pollTimer = null
+      saveGenState({ status: 'FAILED' })
     }
   } catch (err) {
     requestError.value = err?.data?.message || err.message || 'Ошибка при получении статуса'
     isRequesting.value = false
     clearInterval(pollTimer)
     pollTimer = null
+    saveGenState({})
   }
 }
 
@@ -215,7 +319,7 @@ onMounted(loadDream)
         <div class="flex items-center gap-3 mb-4 flex-wrap">
           <h2>Визуализации</h2>
           <Loader v-if="visLoading || isRequesting" class="w-5 h-5 animate-spin text-gray-500" />
-          <span v-if="genStatus" class="text-gray-700 text-sm">Статус генерации: {{ genStatus }}</span>
+          <span v-if="genStatus" class="text-gray-700 text-sm">Статус генерации: {{ genStatusLabel }}</span>
           <span v-if="requestError" class="text-red-600">{{ requestError }}</span>
           <button
             @click="handleRequestGeneration"
@@ -245,8 +349,8 @@ onMounted(loadDream)
                 />
               </div>
               <div>
-                <div class="font-medium">Визуализация #{{ viz.id }}</div>
-                <div class="text-gray-600 text-sm">Статус: {{ viz.status }}</div>
+                <div class="font-medium">Визуализация</div>
+                <div class="text-gray-600 text-sm">Статус: {{ formatStatus(viz.status) }}</div>
                 <div v-if="viz.mime && viz.mime !== 'text/plain'" class="text-gray-600 text-sm">{{ viz.mime }}</div>
               </div>
             </div>
@@ -260,9 +364,38 @@ onMounted(loadDream)
           </div>
         </div>
 
-        <div v-else class="p-12 bg-gray-100 border-2 border-gray-300 text-center">
-          <h3 class="mb-4">Визуализации не созданы</h3>
-          <p class="text-gray-600">Запросите генерацию визуализаций на основе описания вашего сна.</p>
+        <div v-if="genResults.length" class="mt-6 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="font-medium">Результаты генерации</div>
+            <div class="text-sm text-gray-600">Выберите вариант и сохраните</div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <button
+              v-for="url in genResults"
+              :key="url"
+              type="button"
+              class="relative border rounded-lg overflow-hidden bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+              :class="selectedResult === url ? 'border-black' : 'border-gray-200'"
+              @click="selectResult(url)"
+            >
+              <img :src="url" alt="generated option" class="w-full h-36 object-cover" />
+              <div
+                v-if="selectedResult === url"
+                class="absolute inset-0 bg-black/30 text-white flex items-center justify-center text-sm font-semibold"
+              >
+                Выбрано
+              </div>
+            </button>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-60"
+              :disabled="!selectedResult"
+              @click="saveSelectedResult"
+            >
+              Сохранить выбранное
+            </button>
+          </div>
         </div>
 
         <div v-if="readyVisualizations.length" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">

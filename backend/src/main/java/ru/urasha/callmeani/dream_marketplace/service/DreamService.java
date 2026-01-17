@@ -129,7 +129,10 @@ public class DreamService {
         vis.setWidth(request.width());
         vis.setHeight(request.height());
         vis.setDuration(request.duration());
-        vis.setStatus(VisualizationStatus.READY);
-        return visualizationRepository.save(vis);
+        vis.setStatus(VisualizationStatus.ACCEPTED);
+        visualizationRepository.save(vis);
+
+        dream.setVisualization(vis);
+        return vis;
     }
 }

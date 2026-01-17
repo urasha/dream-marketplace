@@ -3,5 +3,5 @@ export const imageGenConfig = {
   mode: 'real',
   mockUrl: 'https://placehold.co/640x640/EEE/222?text=Mock+image',
   pollIntervalMs: 2500,
-  maxPolls: 60,
+  maxPolls: 150, // ~6.25 minutes at 2.5s interval
 }

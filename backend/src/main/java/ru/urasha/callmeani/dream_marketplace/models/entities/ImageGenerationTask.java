@@ -46,6 +46,9 @@ public class ImageGenerationTask {
     @Column(name = "result_url", columnDefinition = "text")
     private String resultUrl;
 
+    @Column(name = "result_urls", columnDefinition = "text")
+    private String resultUrls;
+
     @Column(columnDefinition = "text")
     private String error;
 
