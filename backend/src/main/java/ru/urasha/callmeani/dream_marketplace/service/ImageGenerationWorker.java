@@ -20,13 +20,17 @@ import ru.urasha.callmeani.dream_marketplace.service.dto.ImageGenerationCommandM
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ImageGenerationWorker {
 
     private static final Logger log = LoggerFactory.getLogger(ImageGenerationWorker.class);
-    private static final Duration MAX_WAIT = Duration.ofSeconds(180);
+    // Allow more time for slow external generation
+    private static final Duration MAX_WAIT = Duration.ofSeconds(300);
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
 
     private final ObjectMapper objectMapper;
@@ -76,16 +80,26 @@ public class ImageGenerationWorker {
                 return;
             }
 
-            String imageUrl = extractImageUrl(statusResp);
-            if (imageUrl == null || imageUrl.isBlank()) {
+            List<String> imageUrls = extractImageUrls(statusResp);
+            if (imageUrls.isEmpty()) {
                 fail(task, "Generation finished without image URL");
                 return;
             }
 
-            byte[] data = fetchImage(imageUrl);
-            String key = s3Prefix + "/" + task.getId() + ".png";
-            String storedUrl = storageService.uploadBytes(key, data, "image/png");
-            task.setResultUrl(storedUrl);
+            List<String> stored = new ArrayList<>();
+            int idx = 0;
+            for (String src : imageUrls) {
+                byte[] data = fetchImage(src);
+                String key = s3Prefix + "/" + task.getId() + "-" + idx + ".png";
+                String storedUrl = storageService.uploadBytes(key, data, "image/png");
+                stored.add(storedUrl);
+                idx++;
+            }
+
+            if (!stored.isEmpty()) {
+                task.setResultUrl(stored.get(0));
+                task.setResultUrls(objectMapper.writeValueAsString(stored));
+            }
             task.setStatus(ImageGenerationStatus.DONE);
             repository.save(task);
         } catch (Exception e) {
@@ -137,32 +151,33 @@ public class ImageGenerationWorker {
         return null;
     }
 
-    private String extractImageUrl(GenApiStatusResponse statusResp) {
-        JsonNode out = statusResp.getOutput();
-        if (out != null) {
-            if (out.isArray() && out.size() > 0 && out.get(0).isTextual()) {
-                return out.get(0).asText();
-            }
-            if (out.isTextual()) {
-                return out.asText();
-            }
-            if (out.has("url")) {
-                return out.get("url").asText();
-            }
+    private List<String> extractImageUrls(GenApiStatusResponse statusResp) {
+        List<String> urls = extractFromNode(statusResp.getOutput());
+        if (urls.isEmpty()) {
+            urls = extractFromNode(statusResp.getResult());
         }
-        JsonNode result = statusResp.getResult();
-        if (result != null) {
-            if (result.isArray() && result.size() > 0 && result.get(0).isTextual()) {
-                return result.get(0).asText();
-            }
-            if (result.isTextual()) {
-                return result.asText();
-            }
-            if (result.has("url")) {
-                return result.get("url").asText();
-            }
+        return urls;
+    }
+
+    private List<String> extractFromNode(JsonNode node) {
+        if (node == null) {
+            return Collections.emptyList();
         }
-        return null;
+        List<String> urls = new ArrayList<>();
+        if (node.isArray()) {
+            node.forEach(n -> {
+                if (n.isTextual()) {
+                    urls.add(n.asText());
+                } else if (n.has("url")) {
+                    urls.add(n.get("url").asText());
+                }
+            });
+        } else if (node.isTextual()) {
+            urls.add(node.asText());
+        } else if (node.has("url")) {
+            urls.add(node.get("url").asText());
+        }
+        return urls;
     }
 
     private byte[] fetchImage(String url) {

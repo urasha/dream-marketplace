@@ -9,18 +9,25 @@ import ru.urasha.callmeani.dream_marketplace.models.enums.ImageGenerationStatus;
 import ru.urasha.callmeani.dream_marketplace.repositories.ImageGenerationTaskRepository;
 import ru.urasha.callmeani.dream_marketplace.service.dto.ImageGenerationCommandMessage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.UUID;
+import java.util.Collections;
+import java.util.List;
 
 @Service
 public class ImageGenerationService {
 
     private final ImageGenerationTaskRepository repository;
     private final ImageGenerationRequestProducer producer;
+        private final ObjectMapper objectMapper;
 
-    public ImageGenerationService(ImageGenerationTaskRepository repository,
-                                  ImageGenerationRequestProducer producer) {
+        public ImageGenerationService(ImageGenerationTaskRepository repository,
+                                                                  ImageGenerationRequestProducer producer,
+                                                                  ObjectMapper objectMapper) {
         this.repository = repository;
         this.producer = producer;
+                this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -57,9 +64,31 @@ public class ImageGenerationService {
                 .map(task -> ImageGenerationResponseDto.builder()
                         .id(task.getId())
                         .status(task.getStatus())
-                        .resultUrl(task.getResultUrl())
+                                                .resultUrl(primaryUrl(task))
+                                                .resultUrls(parseResultUrls(task))
                         .error(task.getError())
                         .build())
                 .orElse(null);
     }
+
+        private List<String> parseResultUrls(ImageGenerationTask task) {
+                String raw = task.getResultUrls();
+                if (raw == null || raw.isBlank()) {
+                        return task.getResultUrl() != null ? List.of(task.getResultUrl()) : Collections.emptyList();
+                }
+                try {
+                        List<String> urls = objectMapper.readValue(raw, new TypeReference<List<String>>() {});
+                        return urls == null ? Collections.emptyList() : urls;
+                } catch (Exception e) {
+                        return List.of(raw);
+                }
+        }
+
+        private String primaryUrl(ImageGenerationTask task) {
+                if (task.getResultUrl() != null && !task.getResultUrl().isBlank()) {
+                        return task.getResultUrl();
+                }
+                List<String> urls = parseResultUrls(task);
+                return urls.isEmpty() ? null : urls.get(0);
+        }
 }

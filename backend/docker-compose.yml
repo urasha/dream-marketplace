@@ -15,7 +15,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
 
   # -------------------------------------------------
   # Flyway (DB migrations)
