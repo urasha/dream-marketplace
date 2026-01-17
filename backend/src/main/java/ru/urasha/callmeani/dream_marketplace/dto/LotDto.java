@@ -9,6 +9,7 @@ public record LotDto(
         Long id,
         Long dreamId,
         Long visualizationId,
+        String visualizationUrl,
         String title,
         String description,
         BigDecimal price,

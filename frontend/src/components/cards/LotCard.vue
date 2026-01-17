@@ -8,6 +8,7 @@ const props = defineProps({
   price: { type: [Number, String], default: null },
   author: { type: String, default: 'Автор' },
   category: { type: String, default: '' },
+  imageUrl: { type: String, default: '' },
   ratingAverage: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
   tags: { type: Array, default: () => [] },
@@ -21,8 +22,16 @@ const emit = defineEmits(['click'])
     class="w-full text-left bg-white border border-gray-200 rounded-xl hover:shadow-lg hover:border-violet-300 transition-all overflow-hidden"
     @click="emit('click')"
   >
-    <div class="w-full aspect-[4/3] bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100 border-b border-gray-200 flex items-center justify-center">
-      <div class="text-violet-400">400×300</div>
+    <div class="w-full aspect-[4/3] border-b border-gray-200 bg-gray-100 overflow-hidden">
+      <img
+        v-if="imageUrl"
+        :src="imageUrl"
+        alt="lot preview"
+        class="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+      />
+      <div v-else class="h-full w-full bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100 flex items-center justify-center text-violet-400">
+        400×300
+      </div>
     </div>
 
     <div class="p-4">

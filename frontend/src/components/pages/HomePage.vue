@@ -219,6 +219,7 @@ onUnmounted(() => {
         :price="lot.price"
         :author="lot.authorName"
         :category="lot.categoryName"
+        :image-url="lot.visualizationUrl"
         :rating-average="lot.ratingAverage"
         :rating-count="lot.ratingCount"
         :tags="lot.tags || []"
