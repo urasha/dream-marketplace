@@ -23,26 +23,27 @@ public final class LotMapper {
             ? dream.getTags().stream().map(t -> t.getName()).collect(Collectors.toList())
             : Collections.emptyList();
 
+        var vis = dream != null ? dream.getVisualization() : null;
+
         return new LotDto(
-                lot.getId(),
+            lot.getId(),
             dream != null ? dream.getId() : null,
-            dream != null && dream.getVisualization() != null
-                ? dream.getVisualization().getId()
-                        : null,
-                lot.getTitle(),
-                lot.getDescription(),
-                lot.getPrice(),
-                lot.getStatus(),
+            vis != null ? vis.getId() : null,
+            vis != null ? vis.getFilePath() : null,
+            lot.getTitle(),
+            lot.getDescription(),
+            lot.getPrice(),
+            lot.getStatus(),
             user != null ? user.getId() : null,
             user != null ? user.getUsername() : null,
             category != null ? category.getId() : null,
             category != null ? category.getName() : null,
             tags,
-                ratingAverage,
-                ratingCount,
-                lot.getSubmittedAt(),
-                lot.getReviewedAt(),
-                lot.getModerationReason()
+            ratingAverage,
+            ratingCount,
+            lot.getSubmittedAt(),
+            lot.getReviewedAt(),
+            lot.getModerationReason()
         );
     }
 }

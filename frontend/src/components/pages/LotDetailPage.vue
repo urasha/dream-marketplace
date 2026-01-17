@@ -148,8 +148,14 @@ const formatDate = (iso) => {
     <template v-else-if="lot">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
         <div>
-          <div class="w-full aspect-[4/3] bg-gray-200 border-2 border-gray-300 flex items-center justify-center mb-4">
-            <div class="text-gray-400">Визуализация</div>
+          <div class="w-full aspect-[4/3] bg-gray-100 border-2 border-gray-300 flex items-center justify-center mb-4 overflow-hidden">
+            <img
+              v-if="lot.visualizationUrl"
+              :src="lot.visualizationUrl"
+              alt="Визуализация"
+              class="w-full h-full object-cover"
+            />
+            <div v-else class="text-gray-400">Визуализация</div>
           </div>
         </div>
 
