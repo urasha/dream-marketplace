@@ -16,6 +16,7 @@ import ru.urasha.callmeani.dream_marketplace.repositories.DreamRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.TagRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.VisualizationRepository;
 import ru.urasha.callmeani.dream_marketplace.service.dto.VisualizationRequestMessage;
+import ru.urasha.callmeani.dream_marketplace.dto.VisualizationUploadRequest;
 
 import java.util.HashSet;
 import java.util.List;
@@ -106,5 +107,29 @@ public class DreamService {
         vis.setStatus(VisualizationStatus.ACCEPTED);
         dream.setVisualization(vis);
         return vis;
+    }
+
+    @Transactional
+    public Visualization attachReadyVisualization(Long dreamId, UserAccount user, VisualizationUploadRequest request) {
+        DreamRecord dream = dreamRepository.findById(dreamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
+        if (!dream.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (request == null || request.filePath() == null || request.filePath().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "filePath is required");
+        }
+
+        Visualization vis = new Visualization();
+        vis.setDreamRecord(dream);
+        vis.setPrompt(dream.getContent());
+        vis.setGenerator(request.generator() == null || request.generator().isBlank() ? "ImagesAPI" : request.generator());
+        vis.setFilePath(request.filePath());
+        vis.setMime(request.mime());
+        vis.setWidth(request.width());
+        vis.setHeight(request.height());
+        vis.setDuration(request.duration());
+        vis.setStatus(VisualizationStatus.READY);
+        return visualizationRepository.save(vis);
     }
 }

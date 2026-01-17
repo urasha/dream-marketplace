@@ -19,6 +19,7 @@ import ru.urasha.callmeani.dream_marketplace.service.DreamService;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamCreateRequest;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamDto;
 import ru.urasha.callmeani.dream_marketplace.dto.VisualizationDto;
+import ru.urasha.callmeani.dream_marketplace.dto.VisualizationUploadRequest;
 import ru.urasha.callmeani.dream_marketplace.mappers.DreamMapper;
 import ru.urasha.callmeani.dream_marketplace.mappers.VisualizationMapper;
 
@@ -71,6 +72,16 @@ public class DreamController {
                 .map(VisualizationMapper::toDto)
                 .toList();
         return ResponseEntity.ok(list);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{id}/visualizations/attach")
+    public ResponseEntity<VisualizationDto> attachVisualization(@PathVariable Long id,
+                                                                @RequestBody VisualizationUploadRequest request,
+                                                                @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
+        var vis = dreamService.attachReadyVisualization(id, user, request);
+        return ResponseEntity.ok(VisualizationMapper.toDto(vis));
     }
 
     private UserAccount requireUser(JwtUserDetails details) {

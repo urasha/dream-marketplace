@@ -16,6 +16,10 @@ export async function fetchVisualizations(dreamId) {
   return httpClient.get(`/api/dreams/${dreamId}/visualizations`)
 }
 
+export async function attachVisualization(dreamId, payload) {
+  return httpClient.post(`/api/dreams/${dreamId}/visualizations/attach`, payload)
+}
+
 export async function acceptVisualization(visualizationId) {
   return httpClient.post(`/api/visualizations/${visualizationId}/accept`)
 }

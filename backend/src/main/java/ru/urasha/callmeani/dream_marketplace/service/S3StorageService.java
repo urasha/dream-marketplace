@@ -24,6 +24,14 @@ public class S3StorageService {
                 .contentType(mime)
                 .build();
         s3.putObject(req, RequestBody.fromBytes(content));
-        return "s3://" + props.bucket() + "/" + key;
+        return buildPublicUrl(key);
+    }
+
+    private String buildPublicUrl(String key) {
+        String endpoint = props.endpoint();
+        if (endpoint.endsWith("/")) {
+            endpoint = endpoint.substring(0, endpoint.length() - 1);
+        }
+        return endpoint + "/" + props.bucket() + "/" + key;
     }
 }

@@ -57,3 +57,6 @@ app:
     api-key: ${GENAPI_API_KEY:changeme}
     connect-timeout-millis: ${GENAPI_CONNECT_TIMEOUT:5000}
     read-timeout-millis: ${GENAPI_READ_TIMEOUT:30000}
+  visualization:
+    mock-enabled: ${VIS_MOCK_ENABLED:true}
+    mock-image-url: ${VIS_MOCK_IMAGE_URL:https://placehold.co/640x640/EEE/222?text=Mock+image}
