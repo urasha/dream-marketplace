@@ -33,6 +33,7 @@ const go = (page) => {
     home: () => router.push({ name: 'home' }),
     admin: () => router.push({ name: 'admin' }),
     notifications: () => router.push({ name: 'notifications' }),
+    wallet: () => router.push({ name: 'wallet' }),
     profile: () => router.push({ name: 'profile' }),
   }
   map[page]?.()
@@ -106,7 +107,12 @@ onBeforeUnmount(() => {
         </button>
 
         <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
-          <span class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg">{{ userBalance }} ₽</span>
+          <button
+            @click="go('wallet')"
+            class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+          >
+            {{ userBalance }} ₽
+          </button>
 
           <button
             @click="goNotifications"
@@ -234,7 +240,12 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="pt-3 mt-3 border-t border-gray-200">
-            <span class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg inline-block">Баланс: {{ userBalance }} ₽</span>
+            <button
+              @click="() => { go('wallet'); mobileMenuOpen = false }"
+              class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg inline-block border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+            >
+              Баланс: {{ userBalance }} ₽
+            </button>
           </div>
         </div>
       </div>

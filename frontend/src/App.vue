@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, RouterView } from 'vue-router'
 import Header from './components/Header.vue'
 import { useSessionStore } from './stores/session'
+import { fetchWallet } from './api/payments'
 
 const route = useRoute()
 
@@ -17,8 +18,26 @@ const updateBalance = (value) => {
   userBalance.value = value
 }
 
-onMounted(() => {
-  session.loadProfile().catch(() => {})
+const loadWallet = async () => {
+  try {
+    const wallet = await fetchWallet()
+    if (wallet?.balance !== undefined) {
+      userBalance.value = Number(wallet.balance) || 0
+    }
+  } catch (e) {
+    // ignore wallet load errors
+  }
+}
+
+onMounted(async () => {
+  try {
+    await session.loadProfile()
+    if (session.isAuthenticated.value) {
+      await loadWallet()
+    }
+  } catch (e) {
+    // ignore
+  }
 })
 </script>
 

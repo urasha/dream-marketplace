@@ -136,7 +136,15 @@ const handleLogout = async () => {
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div class="text-gray-600">Баланс</div>
+              <div class="text-gray-600 flex items-center gap-2">
+                Баланс
+                <button
+                  @click="router.push({ name: 'wallet' })"
+                  class="px-2 py-1 text-xs bg-violet-50 text-violet-700 rounded border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+                >
+                  Пополнить
+                </button>
+              </div>
               <div class="text-violet-600">{{ userBalance }} ₽</div>
             </div>
             <div>
