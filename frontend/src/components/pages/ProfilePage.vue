@@ -40,6 +40,22 @@ const dreamsLoading = computed(() => dreamsStore.state.loading)
 const profileLoading = computed(() => session.state.loading)
 const myLots = computed(() => lotsStore.state.mine)
 
+const lotStatusLabels = {
+  OPEN: 'Открыт',
+  PENDING: 'На модерации',
+  SOLD: 'Продан',
+  CLOSED: 'Закрыт',
+}
+
+const lotStatusClass = {
+  OPEN: 'bg-green-100 text-green-700',
+  PENDING: 'bg-yellow-100 text-yellow-700',
+  SOLD: 'bg-blue-100 text-blue-700',
+  CLOSED: 'bg-gray-200 text-gray-700',
+}
+
+const formatLotStatus = (status) => lotStatusLabels[status] || status
+
 const formatDate = (value) => {
   if (!value) return ''
   const date = new Date(value)
@@ -96,7 +112,7 @@ const handleLogout = async () => {
 
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
-    <h1 class="mb-8">Профиль</h1>
+    <h1 class="mb-8 page-title">Профиль</h1>
 
     <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
       <div class="flex items-start gap-6">
@@ -188,8 +204,7 @@ const handleLogout = async () => {
     </div>
 
     <div v-if="activeTab === 'dreams'">
-      <div class="flex items-center justify-between mb-6">
-        <h3>Мои записи снов</h3>
+      <div class="flex justify-end mb-6">
         <button
           @click="router.push({ name: 'create-dream' })"
           class="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
@@ -211,7 +226,6 @@ const handleLogout = async () => {
     </div>
 
     <div v-else-if="activeTab === 'lots'">
-      <h3 class="mb-6">Мои лоты</h3>
       <div v-if="lotsStore.state.loading" class="text-gray-600">Загружаем лоты...</div>
       <div v-else-if="myLots.length === 0" class="text-gray-600">Лоты пока не созданы</div>
       <div v-else class="space-y-4">
@@ -231,9 +245,11 @@ const handleLogout = async () => {
                 </div>
                 <div>
                   <div class="text-gray-600">Статус</div>
-                  <span class="inline-block px-3 py-1 rounded-full"
-                    :class="lot.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
-                    {{ lot.status }}
+                  <span
+                    class="inline-block px-3 py-1 rounded-full"
+                    :class="lotStatusClass[lot.status] || 'bg-gray-100 text-gray-700'"
+                  >
+                    {{ formatLotStatus(lot.status) }}
                   </span>
                 </div>
                 <div>
@@ -249,46 +265,7 @@ const handleLogout = async () => {
     </div>
 
     <div v-else>
-      <h3 class="mb-6">Мои покупки</h3>
-      <div class="space-y-4">
-        <div
-          v-for="transaction in userTransactions"
-          :key="transaction.id"
-          class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-        >
-          <template v-if="transaction.type === 'purchase'">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex-1">
-                <h3 class="mb-2">{{ transaction.lotTitle }}</h3>
-                <div class="text-gray-600">{{ transaction.date }}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-gray-600">Сумма</div>
-                <div>{{ transaction.amount }} ₽</div>
-              </div>
-            </div>
-            <button
-              @click="router.push({ name: 'lot-detail', params: { id: transaction.lotId } })"
-              class="w-full md:w-auto px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
-            >
-              Открыть лот
-            </button>
-          </template>
-
-          <template v-else>
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <h3 class="mb-2">Пополнение баланса</h3>
-                <div class="text-gray-600">{{ transaction.date }}</div>
-              </div>
-              <div class="text-right">
-                <div class="text-gray-600">Сумма</div>
-                <div class="text-green-600">+{{ transaction.amount }} ₽</div>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
+      <div class="text-gray-600">Здесь будут ваши покупки, когда появятся реальные транзакции.</div>
     </div>
   </div>
 </template>

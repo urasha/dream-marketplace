@@ -302,7 +302,7 @@ onMounted(loadDream)
     <template v-else-if="dream">
       <div class="mb-8">
         <div class="flex items-start justify-between mb-4">
-          <h1>{{ dream.title }}</h1>
+          <h1 class="page-title">{{ dream.title }}</h1>
           <div class="px-3 py-1 bg-gray-200 border border-gray-400">
             {{ dream.privacy === 'PRIVATE' ? 'Приватный' : 'Публичный' }}
           </div>
@@ -345,7 +345,7 @@ onMounted(loadDream)
                 <img
                   :src="viz.filePath || imageGenConfig.mockUrl"
                   alt="viz"
-                  class="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+                  class="w-full h-full object-cover transition-transform duration-200 hover:scale-105 block"
                 />
               </div>
               <div>
@@ -378,7 +378,7 @@ onMounted(loadDream)
               :class="selectedResult === url ? 'border-black' : 'border-gray-200'"
               @click="selectResult(url)"
             >
-              <img :src="url" alt="generated option" class="w-full h-36 object-cover" />
+              <img :src="url" alt="generated option" class="w-full h-36 object-cover block" />
               <div
                 v-if="selectedResult === url"
                 class="absolute inset-0 bg-black/30 text-white flex items-center justify-center text-sm font-semibold"

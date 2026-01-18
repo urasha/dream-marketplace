@@ -134,7 +134,7 @@ onUnmounted(() => {
 
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
-    <h1 class="mb-8 text-2xl font-semibold">Маркетплейс снов</h1>
+    <h1 class="mb-8 page-title">Маркетплейс снов</h1>
 
     <div class="bg-white border border-[#7c3aed]/40 rounded-xl px-4 py-3 mb-8 shadow-sm">
       <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700">
@@ -210,7 +210,7 @@ onUnmounted(() => {
 
     <div v-if="loading" class="text-gray-600">Загружаем лоты...</div>
     <div v-else-if="!displayedLots.length" class="text-gray-600">Лотов пока нет</div>
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 items-start">
       <LotCard
         v-for="lot in displayedLots"
         :key="lot.id"
