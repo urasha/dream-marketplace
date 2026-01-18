@@ -163,7 +163,7 @@ const handlePublish = async () => {
       Назад
     </button>
 
-    <h1 class="mb-8">Создать лот</h1>
+    <h1 class="mb-8 page-title">Создать лот</h1>
 
     <div v-if="status === 'success'" class="p-12 text-center border-2 border-green-600 bg-green-50">
       <CheckCircle class="w-16 h-16 mx-auto mb-4" />
@@ -173,13 +173,13 @@ const handlePublish = async () => {
         <button
           v-if="createdLotId"
           @click="router.push({ name: 'lot-detail', params: { id: createdLotId } })"
-          class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors"
+          class="px-8 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors shadow-sm"
         >
           Открыть лот
         </button>
         <button
           @click="router.push({ name: 'profile' })"
-          class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
+          class="px-8 py-3 border border-violet-200 text-violet-700 rounded-lg hover:border-violet-400 hover:bg-violet-50 transition-colors"
         >
           Профиль
         </button>
@@ -193,12 +193,6 @@ const handlePublish = async () => {
           <h3 class="text-red-900">Не удалось создать лот</h3>
           <p class="text-red-700">{{ errorMessage }}</p>
         </div>
-      </div>
-
-      <div class="mb-8 p-6 bg-gray-50 border-2 border-gray-300">
-        <h3 class="mb-2">Контекст</h3>
-        <p class="text-gray-700" v-if="hasContext">Сон #{{ dreamId }} · Визуализация #{{ visualizationId }}</p>
-        <p class="text-red-700" v-else>Не выбрана визуализация — вернитесь и выберите готовый вариант.</p>
       </div>
 
       <div class="space-y-6">
@@ -304,13 +298,13 @@ const handlePublish = async () => {
           <button
             @click="handlePublish"
             :disabled="status === 'loading'"
-            class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-500"
+            class="px-8 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-60"
           >
             {{ status === 'loading' ? 'Сохраняем...' : 'Опубликовать лот' }}
           </button>
           <button
             @click="goBack"
-            class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
+            class="px-8 py-3 border border-violet-200 text-violet-700 rounded-lg hover:border-violet-400 hover:bg-violet-50 transition-colors"
           >
             Отмена
           </button>

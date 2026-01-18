@@ -51,7 +51,7 @@ const handleSubmit = async () => {
       Назад к профилю
     </button>
 
-    <h1 class="mb-8">Создать запись сна</h1>
+    <h1 class="mb-8 page-title">Создать запись сна</h1>
 
     <div v-if="status === 'error'" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
       <AlertCircle class="w-6 h-6 flex-shrink-0 text-red-600" />
@@ -114,51 +114,6 @@ const handleSubmit = async () => {
         >
           Отмена
         </button>
-      </div>
-    </div>
-
-    <div class="mt-12 pt-12 border-t border-gray-200">
-      <h2 class="mb-6">Примеры записей</h2>
-
-      <div class="space-y-6">
-        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <h3 class="mb-2">Подводное путешествие</h3>
-          <p class="text-gray-700">
-            Я нырнул в прозрачную воду и увидел целый подводный город. Здания были покрыты кораллами,
-            а между ними плавали светящиеся рыбы. Я мог дышать под водой и свободно перемещаться...
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="px-2 py-1 bg-cyan-50 text-cyan-700 rounded-md">вода</span>
-            <span class="px-2 py-1 bg-cyan-50 text-cyan-700 rounded-md">город</span>
-            <span class="px-2 py-1 bg-cyan-50 text-cyan-700 rounded-md">фантастика</span>
-          </div>
-        </div>
-
-        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <h3 class="mb-2">Зеркальный лабиринт</h3>
-          <p class="text-gray-700">
-            Я оказался в комнате, полностью состоящей из зеркал. Каждое отражение показывало другую
-            версию меня в разных мирах. Некоторые были счастливы, другие грустны...
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded-md">зеркала</span>
-            <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded-md">лабиринт</span>
-            <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded-md">философия</span>
-          </div>
-        </div>
-
-        <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <h3 class="mb-2">Говорящие деревья</h3>
-          <p class="text-gray-700">
-            В лесу все деревья могли разговаривать. Они рассказывали истории о прошлом, делились
-            мудростью веков. Самое старое дерево знало моё имя и ждало моего прихода...
-          </p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="px-2 py-1 bg-green-50 text-green-700 rounded-md">лес</span>
-            <span class="px-2 py-1 bg-green-50 text-green-700 rounded-md">природа</span>
-            <span class="px-2 py-1 bg-green-50 text-green-700 rounded-md">магия</span>
-          </div>
-        </div>
       </div>
     </div>
   </div>

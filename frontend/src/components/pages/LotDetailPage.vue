@@ -96,12 +96,13 @@ const submitComment = async () => {
   }
 }
 
-const chooseRating = (value) => {
+const chooseRating = async (value) => {
   selectedRating.value = value
   ratingError.value = ''
   ratingSuccess.value = ''
   // сразу показываем выбранное значение как текущую локальную оценку
   rating.userValue = value
+  await submitRating()
 }
 
 const submitRating = async () => {
@@ -153,14 +154,14 @@ const formatDate = (iso) => {
               v-if="lot.visualizationUrl"
               :src="lot.visualizationUrl"
               alt="Визуализация"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-cover block"
             />
             <div v-else class="text-gray-400">Визуализация</div>
           </div>
         </div>
 
         <div>
-          <h1 class="mb-4">{{ lot.title }}</h1>
+          <h1 class="mb-4 page-title">{{ lot.title }}</h1>
           <div class="text-gray-600 mb-2">Автор: {{ lot.authorName || '—' }}</div>
           <div v-if="lot.categoryName" class="text-gray-500 mb-4">Категория: {{ lot.categoryName }}</div>
           <div class="mb-6 text-xl font-semibold">{{ lot.price }} ₽</div>
@@ -185,9 +186,9 @@ const formatDate = (iso) => {
             </div>
           </div>
 
-          <div class="p-6 bg-gray-50 border-2 border-gray-300 mb-6">
-            <h3 class="mb-3">Описание</h3>
-            <p class="text-gray-700">{{ lot.description || 'Описание не указано' }}</p>
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm mb-6">
+            <h3 class="mb-3 section-title">Описание</h3>
+            <p class="text-gray-800 leading-relaxed">{{ lot.description || 'Описание не указано' }}</p>
           </div>
 
           <div v-if="lot.tags?.length" class="mb-6 flex flex-wrap gap-2">
@@ -202,7 +203,7 @@ const formatDate = (iso) => {
 
           <button
             @click="router.push({ name: 'purchase', params: { id: lot.id } })"
-            class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors"
+            class="w-full py-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors shadow-sm"
           >
             Купить
           </button>
@@ -229,19 +230,13 @@ const formatDate = (iso) => {
           <span class="text-gray-600 text-sm" v-if="rating.userValue">Текущая: {{ rating.userValue }} ★</span>
         </div>
         <div class="flex items-center gap-3">
-          <button
-            class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-60"
-            :disabled="rating.saving"
-            @click="submitRating"
-          >
-            Подтвердить
-          </button>
+          <span class="text-sm text-gray-500" v-if="rating.saving">Сохраняем...</span>
           <span class="text-sm text-red-600" v-if="ratingError">{{ ratingError }}</span>
           <span class="text-sm text-green-600" v-if="ratingSuccess">{{ ratingSuccess }}</span>
         </div>
       </div>
 
-      <div class="mb-10 p-6 border border-gray-200 rounded-lg bg-white">
+      <div class="mt-6 mb-10 p-6 border border-gray-200 rounded-lg bg-white">
         <h2 class="text-lg font-semibold mb-4">Комментарии</h2>
 
         <div class="mb-4">
