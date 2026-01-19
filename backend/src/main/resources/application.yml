@@ -60,6 +60,8 @@ app:
   visualization:
     mock-enabled: ${VIS_MOCK_ENABLED:true}
     mock-image-url: ${VIS_MOCK_IMAGE_URL:https://placehold.co/640x640/EEE/222?text=Mock+image}
+  marketplace:
+    fee-percent: ${MARKETPLACE_FEE_PERCENT:1.25}
   yookassa:
     shop-id: ${YOOKASSA_SHOP_ID:1252732}
     secret-key: ${YOOKASSA_SECRET_KEY:test_C4duUrDFEyNCzu0B0adhtYOUF-EV3jkxLJRVOY7vg5w}
