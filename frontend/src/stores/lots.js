@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { createLot as apiCreateLot, fetchLots, fetchMyLots, fetchLot } from '../api/lots'
+import { createLot as apiCreateLot, fetchLots, fetchMyLots, fetchLot, deleteLot as apiDeleteLot } from '../api/lots'
 
 const state = reactive({
   catalog: [],
@@ -57,6 +57,15 @@ async function createLot(payload) {
   return lot
 }
 
+async function deleteLot(id) {
+  await apiDeleteLot(id)
+  state.mine = state.mine.filter((lot) => lot.id !== id)
+  state.catalog = state.catalog.filter((lot) => lot.id !== id)
+  if (state.current && state.current.id === id) {
+    state.current = null
+  }
+}
+
 export function useLotsStore() {
   return {
     state,
@@ -64,5 +73,6 @@ export function useLotsStore() {
     loadMyLots,
     loadLot,
     createLot,
+    deleteLot,
   }
 }

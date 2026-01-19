@@ -13,8 +13,10 @@ import ru.urasha.callmeani.dream_marketplace.models.entities.Visualization;
 import ru.urasha.callmeani.dream_marketplace.models.enums.LotStatus;
 import ru.urasha.callmeani.dream_marketplace.models.enums.VisualizationStatus;
 import ru.urasha.callmeani.dream_marketplace.repositories.CategoryRepository;
+import ru.urasha.callmeani.dream_marketplace.repositories.CommentRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.DreamRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
+import ru.urasha.callmeani.dream_marketplace.repositories.RatingRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.TagRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.TransactionRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.VisualizationRepository;
@@ -33,19 +35,25 @@ public class LotService {
     private final TagRepository tagRepository;
     private final DreamRepository dreamRepository;
     private final TransactionRepository transactionRepository;
+    private final CommentRepository commentRepository;
+    private final RatingRepository ratingRepository;
 
     public LotService(LotRepository lotRepository,
                       VisualizationRepository visualizationRepository,
                       CategoryRepository categoryRepository,
                       TagRepository tagRepository,
                       DreamRepository dreamRepository,
-                      TransactionRepository transactionRepository) {
+                      TransactionRepository transactionRepository,
+                      CommentRepository commentRepository,
+                      RatingRepository ratingRepository) {
         this.lotRepository = lotRepository;
         this.visualizationRepository = visualizationRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.dreamRepository = dreamRepository;
         this.transactionRepository = transactionRepository;
+        this.commentRepository = commentRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     @Transactional
@@ -167,5 +175,23 @@ public class LotService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lot not available");
         }
         return lot;
+    }
+
+    @Transactional
+    public void deleteLot(Long lotId, UserAccount author) {
+        Lot lot = lotRepository.findDetailedById(lotId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lot not found"));
+        var dream = lot.getDreamRecord();
+        var owner = dream != null ? dream.getUser() : null;
+        if (owner == null || author == null || !owner.getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can delete only your own lots");
+        }
+        if (lot.getStatus() == LotStatus.SOLD) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Sold lots cannot be deleted");
+        }
+
+        ratingRepository.deleteByLot_Id(lotId);
+        commentRepository.deleteByLot_Id(lotId);
+        lotRepository.delete(lot);
     }
 }

@@ -18,4 +18,6 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
 
     @Query("select count(r) from Rating r where r.lot.id = :lotId")
     long countForLot(@Param("lotId") Long lotId);
+
+    void deleteByLot_Id(Long lotId);
 }

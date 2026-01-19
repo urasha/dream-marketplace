@@ -38,6 +38,7 @@ const ratingError = ref('')
 const ratingSuccess = ref('')
 const selectedRating = ref(null)
 const hoverRating = ref(null)
+const deleteError = ref('')
 
 const backTarget = computed(() => {
   if (route.query.from === 'profile-lots') {
@@ -53,6 +54,10 @@ const isOwner = computed(() => {
   const userId = session.state.profile?.id
   return Boolean(userId && lot.value && lot.value.authorId === userId)
 })
+
+const isClosed = computed(() => Boolean(lot.value && lot.value.status === 'CLOSED'))
+const canDeleteLot = computed(() => Boolean(isOwner.value && lot.value && lot.value.status !== 'SOLD'))
+const canManageFeedback = computed(() => !isClosed.value)
 
 const isAvailableForPurchase = computed(() => {
   return Boolean(lot.value && lot.value.status === 'OPEN')
@@ -121,6 +126,7 @@ const loadRating = async () => {
 }
 
 const submitComment = async () => {
+  if (isClosed.value) return
   commentError.value = ''
   const text = commentInput.value.trim()
   if (!text) {
@@ -146,6 +152,7 @@ const chooseRating = async (value) => {
 }
 
 const submitRating = async () => {
+  if (isClosed.value) return
   if (!props.lotId || rating.saving) return
   if (!selectedRating.value) {
     ratingError.value = 'Выберите количество звёзд'
@@ -175,6 +182,19 @@ const handleDownload = async () => {
     await downloadLotAsset(lot.value.id)
   } catch (e) {
     downloadError.value = 'Не удалось скачать файл'
+  }
+}
+
+const handleDelete = async () => {
+  if (!lot.value || !canDeleteLot.value) return
+  deleteError.value = ''
+  const confirmed = window.confirm('Удалить лот? Это действие нельзя отменить.')
+  if (!confirmed) return
+  try {
+    await lotsStore.deleteLot(lot.value.id)
+    router.push(backTarget.value)
+  } catch (e) {
+    deleteError.value = e?.data?.message || 'Не удалось удалить лот'
   }
 }
 
@@ -263,7 +283,7 @@ watch(
           <div v-if="lot.categoryName" class="text-gray-500 mb-4">Категория: {{ lot.categoryName }}</div>
           <div class="mb-6 text-xl font-semibold">{{ lot.price }} ₽</div>
 
-          <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-white">
+          <div v-if="canManageFeedback" class="mb-6 p-4 border border-gray-200 rounded-lg bg-white">
             <div class="flex items-center justify-between mb-2">
               <div class="font-medium">Рейтинг</div>
               <div class="text-sm text-gray-600" v-if="!rating.loading">{{ rating.count }} оценок</div>
@@ -301,6 +321,16 @@ watch(
           <div v-if="isOwner" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
             Это ваш лот — купить его нельзя.
           </div>
+          <div v-if="isClosed" class="mb-4 p-4 bg-gray-100 border border-gray-200 text-gray-600 rounded-lg">
+            Лот закрыт — рейтинги и комментарии недоступны.
+          </div>
+          <button
+            v-if="canDeleteLot"
+            @click="handleDelete"
+            class="w-full py-3 mb-3 rounded-lg transition-colors shadow-sm border border-red-200 text-red-600 hover:bg-red-50"
+          >
+            Удалить лот
+          </button>
           <button
             v-if="canDownload"
             @click="handleDownload"
@@ -320,10 +350,11 @@ watch(
             Вы владеете этим лотом — файл доступен для скачивания.
           </div>
           <div v-if="downloadError" class="mt-2 text-sm text-red-600">{{ downloadError }}</div>
+          <div v-if="deleteError" class="mt-2 text-sm text-red-600">{{ deleteError }}</div>
         </div>
       </div>
 
-      <div class="mb-10 p-6 border border-gray-200 rounded-lg bg-white">
+      <div v-if="canManageFeedback" class="mb-10 p-6 border border-gray-200 rounded-lg bg-white">
         <h2 class="text-lg font-semibold mb-3">Ваша оценка</h2>
         <div class="flex items-center gap-2 mb-3">
           <button
@@ -349,7 +380,7 @@ watch(
         </div>
       </div>
 
-      <div class="mt-6 mb-10 p-6 border border-gray-200 rounded-lg bg-white">
+      <div v-if="canManageFeedback" class="mt-6 mb-10 p-6 border border-gray-200 rounded-lg bg-white">
         <h2 class="text-lg font-semibold mb-4">Комментарии</h2>
 
         <div class="mb-4">

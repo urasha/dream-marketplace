@@ -39,6 +39,7 @@ const emailInput = ref('')
 const purchases = ref([])
 const purchasesLoading = ref(false)
 const purchasesError = ref('')
+const deleteError = ref('')
 
 const dreams = computed(() => dreamsStore.state.items)
 const dreamsLoading = computed(() => dreamsStore.state.loading)
@@ -61,6 +62,8 @@ const lotStatusClass = {
 }
 
 const formatLotStatus = (status) => lotStatusLabels[status] || status
+
+const canDeleteLot = (lot) => lot && lot.status !== 'SOLD'
 
 const formatDate = (value) => {
   if (!value) return ''
@@ -132,6 +135,18 @@ const handleUpdateProfile = async () => {
   } catch (err) {
     updateStatus.value = 'error'
     updateError.value = err?.data?.message || 'Не удалось обновить профиль'
+  }
+}
+
+const handleDeleteLot = async (lotId) => {
+  deleteError.value = ''
+  if (!lotId) return
+  const confirmed = window.confirm('Удалить лот? Это действие нельзя отменить.')
+  if (!confirmed) return
+  try {
+    await lotsStore.deleteLot(lotId)
+  } catch (err) {
+    deleteError.value = err?.data?.message || 'Не удалось удалить лот'
   }
 }
 
@@ -267,6 +282,7 @@ const handleLogout = async () => {
     <div v-else-if="activeTab === 'lots'">
       <div v-if="lotsStore.state.loading" class="text-gray-600">Загружаем лоты...</div>
       <div v-else-if="myLots.length === 0" class="text-gray-600">Лоты пока не созданы</div>
+      <div v-else-if="deleteError" class="text-red-600 mb-3">{{ deleteError }}</div>
       <div v-else class="space-y-4">
         <button
           v-for="lot in myLots"
@@ -297,7 +313,17 @@ const handleLogout = async () => {
                 </div>
               </div>
             </div>
-            <span class="text-violet-600">Открыть →</span>
+            <div class="flex flex-col items-end gap-2">
+              <button
+                class="px-3 py-1 text-sm border rounded-md"
+                :class="canDeleteLot(lot) ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-gray-200 text-gray-400 cursor-not-allowed'"
+                :disabled="!canDeleteLot(lot)"
+                @click.stop="handleDeleteLot(lot.id)"
+              >
+                Удалить
+              </button>
+              <span class="text-violet-600">Открыть →</span>
+            </div>
           </div>
         </button>
       </div>

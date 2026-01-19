@@ -11,6 +11,7 @@ import ru.urasha.callmeani.dream_marketplace.models.entities.Comment;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Lot;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Rating;
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
+import ru.urasha.callmeani.dream_marketplace.models.enums.LotStatus;
 import ru.urasha.callmeani.dream_marketplace.repositories.CommentRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.RatingRepository;
@@ -48,6 +49,9 @@ public class LotFeedbackService {
     public CommentDto addComment(Long lotId, UserAccount user, CommentCreateRequest request) {
         Lot lot = lotRepository.findById(lotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Лот не найден"));
+        if (lot.getStatus() == LotStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Лот закрыт: комментарии недоступны");
+        }
 
         Comment comment = new Comment();
         comment.setLot(lot);
@@ -69,6 +73,9 @@ public class LotFeedbackService {
     public RatingSummaryDto setRating(Long lotId, UserAccount user, int value) {
         Lot lot = lotRepository.findById(lotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Лот не найден"));
+        if (lot.getStatus() == LotStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Лот закрыт: рейтинг недоступен");
+        }
 
         Rating rating = ratingRepository.findByLot_IdAndUser_Id(lotId, user.getId())
                 .orElseGet(() -> {
