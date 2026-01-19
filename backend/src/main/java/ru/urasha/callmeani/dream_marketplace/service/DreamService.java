@@ -44,7 +44,7 @@ public class DreamService {
     }
 
     @Transactional
-    public DreamRecord create(UserAccount user, String title, String content, Privacy privacy, Long categoryId, List<Long> tagIds) {
+    public DreamRecord create(UserAccount user, String title, String content, Privacy privacy, Long categoryId, List<Long> tagIds, List<String> tagNames) {
         DreamRecord dream = new DreamRecord();
         dream.setUser(user);
         dream.setTitle(title);
@@ -55,9 +55,34 @@ public class DreamService {
                     .orElseThrow(() -> new IllegalArgumentException("Category not found"));
             dream.setCategory(category);
         }
+        Set<Tag> resultingTags = new HashSet<>();
+
         if (tagIds != null && !tagIds.isEmpty()) {
             List<Tag> tags = tagRepository.findByIdIn(tagIds);
-            dream.setTags(new HashSet<>(tags));
+            resultingTags.addAll(tags);
+        }
+
+        if (tagNames != null && !tagNames.isEmpty()) {
+            for (String rawName : tagNames) {
+                if (rawName == null) {
+                    continue;
+                }
+                String name = rawName.trim();
+                if (name.isEmpty()) {
+                    continue;
+                }
+                Tag tag = tagRepository.findByNameIgnoreCase(name)
+                        .orElseGet(() -> {
+                            Tag t = new Tag();
+                            t.setName(name);
+                            return tagRepository.save(t);
+                        });
+                resultingTags.add(tag);
+            }
+        }
+
+        if (!resultingTags.isEmpty()) {
+            dream.setTags(resultingTags);
         }
         return dreamRepository.save(dream);
     }

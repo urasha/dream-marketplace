@@ -10,6 +10,7 @@ public record DreamCreateRequest(
         @NotBlank String content,
         @NotNull Privacy privacy,
         Long categoryId,
-        List<Long> tagIds
+        List<Long> tagIds,
+        List<String> tagNames
 ) {
 }

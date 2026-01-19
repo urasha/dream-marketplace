@@ -42,7 +42,15 @@ public class DreamController {
     public ResponseEntity<DreamDto> create(@Valid @RequestBody DreamCreateRequest request,
                                            @AuthenticationPrincipal JwtUserDetails details) {
         UserAccount user = requireUser(details);
-        var dream = dreamService.create(user, request.title(), request.content(), request.privacy(), request.categoryId(), request.tagIds());
+        var dream = dreamService.create(
+            user,
+            request.title(),
+            request.content(),
+            request.privacy(),
+            request.categoryId(),
+            request.tagIds(),
+            request.tagNames()
+        );
         return ResponseEntity.ok(DreamMapper.toDto(dream));
     }
 

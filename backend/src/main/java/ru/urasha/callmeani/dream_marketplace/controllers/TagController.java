@@ -33,4 +33,14 @@ public class TagController {
         var dtos = tags.stream().map(t -> new TagDto(t.getId(), t.getName())).toList();
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/by-ids")
+    public ResponseEntity<List<TagDto>> byIds(@RequestParam(name = "ids") List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+        var tags = tagRepository.findByIdIn(ids);
+        var dtos = tags.stream().map(t -> new TagDto(t.getId(), t.getName())).toList();
+        return ResponseEntity.ok(dtos);
+    }
 }

@@ -3,7 +3,8 @@ import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
-import { searchTags } from '../../api/tags'
+import { useDreamsStore } from '../../stores/dreams'
+import { searchTags, fetchTagsByIds } from '../../api/tags'
 import { fetchCategories } from '../../api/categories'
 
 const props = defineProps({
@@ -13,6 +14,7 @@ const props = defineProps({
 
 const router = useRouter()
 const lotsStore = useLotsStore()
+const dreamsStore = useDreamsStore()
 
 const title = ref('')
 const description = ref('')
@@ -44,6 +46,7 @@ let tagSearchTimer = null
 
 onMounted(async () => {
   await loadCategories()
+  await prefillFromDream()
 })
 
 onUnmounted(() => {
@@ -85,6 +88,34 @@ const loadCategories = async () => {
     }
   } catch (e) {
     categories.value = []
+  }
+}
+
+const prefillFromDream = async () => {
+  if (!props.dreamId) return
+  try {
+    if (!dreamsStore.state.items.length) {
+      await dreamsStore.loadDreams()
+    }
+    const dream = dreamsStore.state.items.find((d) => d.id === props.dreamId)
+    if (!dream) return
+
+    if (!title.value) {
+      title.value = dream.title || ''
+    }
+    if (!description.value) {
+      description.value = dream.content || ''
+    }
+    if (dream.categoryId) {
+      selectedCategoryId.value = dream.categoryId
+    }
+
+    if (!tagsState.selected.length && Array.isArray(dream.tagIds) && dream.tagIds.length) {
+      const tags = await fetchTagsByIds(dream.tagIds)
+      tagsState.selected = tags.map((t) => ({ id: t.id, name: t.name }))
+    }
+  } catch (e) {
+    // ignore prefill errors
   }
 }
 
