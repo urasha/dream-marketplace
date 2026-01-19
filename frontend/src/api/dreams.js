@@ -23,3 +23,7 @@ export async function attachVisualization(dreamId, payload) {
 export async function acceptVisualization(visualizationId) {
   return httpClient.post(`/api/visualizations/${visualizationId}/accept`)
 }
+
+export async function deleteDream(id) {
+  return httpClient.delete(`/api/dreams/${id}`)
+}

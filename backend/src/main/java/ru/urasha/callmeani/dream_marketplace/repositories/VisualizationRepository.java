@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface VisualizationRepository extends JpaRepository<Visualization, Long> {
     List<Visualization> findByDreamRecordIdOrderByCreatedAtDesc(Long dreamRecordId);
+
+    void deleteByDreamRecord_Id(Long dreamRecordId);
 }

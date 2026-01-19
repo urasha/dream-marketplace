@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { fetchMyDreams, createDream as apiCreateDream, requestVisualization, fetchVisualizations } from '../api/dreams'
+import { fetchMyDreams, createDream as apiCreateDream, requestVisualization, fetchVisualizations, deleteDream as apiDeleteDream } from '../api/dreams'
 
 const state = reactive({
   items: [],
@@ -35,6 +35,11 @@ async function loadVisualizations(dreamId) {
   return fetchVisualizations(dreamId)
 }
 
+async function deleteDream(id) {
+  await apiDeleteDream(id)
+  state.items = state.items.filter((dream) => dream.id !== id)
+}
+
 export function useDreamsStore() {
   return {
     state,
@@ -42,5 +47,6 @@ export function useDreamsStore() {
     createDream,
     requestDreamVisualization,
     loadVisualizations,
+    deleteDream,
   }
 }

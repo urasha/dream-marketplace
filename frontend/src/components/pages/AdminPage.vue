@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { CheckCircle, XCircle } from 'lucide-vue-next'
 import { fetchModerationQueue, fetchModerationLog, approveLot, rejectLot } from '../../api/moderation'
 import { API_BASE } from '../../api/httpClient'
+import { showError, normalizeErrorMessage } from '../../ui/feedback'
 
 const activeTab = ref('queue')
 const selectedLot = ref(null)
@@ -51,7 +52,7 @@ const loadQueue = async () => {
     queue.value = await fetchModerationQueue()
   } catch (e) {
     queue.value = []
-    error.value = e?.data?.message || 'Не удалось загрузить очередь модерации'
+    error.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось загрузить очередь модерации')
   } finally {
     loadingQueue.value = false
   }
@@ -64,7 +65,7 @@ const loadLog = async () => {
     log.value = await fetchModerationLog()
   } catch (e) {
     log.value = []
-    error.value = e?.data?.message || 'Не удалось загрузить историю модерации'
+    error.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось загрузить историю модерации')
   } finally {
     loadingLog.value = false
   }
@@ -76,7 +77,7 @@ const handleApprove = async (lotId) => {
     await loadQueue()
     await loadLog()
   } catch (e) {
-    error.value = e?.data?.message || 'Не удалось одобрить лот'
+    error.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось одобрить лот')
   } finally {
     selectedLot.value = null
   }
@@ -84,7 +85,7 @@ const handleApprove = async (lotId) => {
 
 const handleReject = async (lotId) => {
   if (!rejectReason.value) {
-    alert('Укажите причину отклонения')
+    showError('Укажите причину отклонения')
     return
   }
   try {
@@ -95,7 +96,7 @@ const handleReject = async (lotId) => {
     rejectReason.value = ''
     selectedLot.value = null
   } catch (e) {
-    error.value = e?.data?.message || 'Не удалось отклонить лот'
+    error.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось отклонить лот')
   }
 }
 

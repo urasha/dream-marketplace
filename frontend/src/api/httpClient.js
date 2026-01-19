@@ -1,3 +1,5 @@
+import { showError, normalizeErrorMessage } from '../ui/feedback'
+
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 function getToken() {
@@ -48,7 +50,15 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
     init.headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE}${path}`, init)
+  let response
+  try {
+    response = await fetch(`${API_BASE}${path}`, init)
+  } catch (err) {
+    const error = new Error('Network error')
+    error.userMessage = 'Ошибка сети. Проверьте подключение.'
+    showError(error.userMessage)
+    throw error
+  }
   const data = await parseJsonSafe(response)
 
   if (response.status === 401) {
@@ -56,6 +66,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
     const error = new Error('Unauthorized')
     error.status = 401
     error.data = data
+    error.userMessage = normalizeErrorMessage(error)
     throw error
   }
 
@@ -63,6 +74,8 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
     const error = new Error('Request failed')
     error.status = response.status
     error.data = data
+    error.userMessage = normalizeErrorMessage(error)
+    showError(error.userMessage)
     throw error
   }
 

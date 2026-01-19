@@ -11,7 +11,7 @@ public final class DreamMapper {
     private DreamMapper() {
     }
 
-    public static DreamDto toDto(DreamRecord dream) {
+        public static DreamDto toDto(DreamRecord dream, boolean hasLot) {
         Long categoryId = dream.getCategory() != null ? dream.getCategory().getId() : null;
         Long visualizationId = dream.getVisualization() != null ? dream.getVisualization().getId() : null;
         Set<Long> tagIds = dream.getTags() == null ? Set.of() : dream.getTags().stream()
@@ -25,6 +25,7 @@ public final class DreamMapper {
                 categoryId,
                 tagIds,
                 visualizationId,
+            hasLot,
                 dream.getCreatedAt(),
                 dream.getUpdatedAt()
         );

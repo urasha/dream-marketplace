@@ -7,6 +7,7 @@ import { useDreamsStore } from '../../stores/dreams'
 import { createImageGeneration, fetchImageGeneration } from '../../api/images'
 import { attachVisualization } from '../../api/dreams'
 import { imageGenConfig } from '../../config/imageGen'
+import { confirmAction, normalizeErrorMessage } from '../../ui/feedback'
 
 const props = defineProps({
   dreamId: { type: Number, default: null },
@@ -28,6 +29,7 @@ const genResults = ref([])
 const selectedResult = ref('')
 const pollCount = ref(0)
 const isRequesting = ref(false)
+const deleteError = ref('')
 const maxPolls = imageGenConfig.maxPolls || 60
 const pollIntervalMs = imageGenConfig.pollIntervalMs || 2000
 let pollTimer = null
@@ -249,6 +251,29 @@ const saveSelectedResult = async () => {
   genResultUrl.value = ''
 }
 
+const handleDeleteDream = async () => {
+  if (!dream.value) return
+  if (dream.value.hasLot) {
+    deleteError.value = 'Нельзя удалить сон: по нему создан лот'
+    return
+  }
+  deleteError.value = ''
+  const confirmed = await confirmAction({
+    title: 'Удалить сон?',
+    message: 'Сон будет удалён без возможности восстановления.',
+    confirmText: 'Удалить',
+    cancelText: 'Отмена',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  try {
+    await dreamsStore.deleteDream(dream.value.id)
+    router.push({ name: 'profile' })
+  } catch (err) {
+    deleteError.value = err?.userMessage || normalizeErrorMessage(err, 'Не удалось удалить сон')
+  }
+}
+
 const checkGenerationStatus = async () => {
   if (!genTaskId.value) return
   if (pollCount.value >= maxPolls) {
@@ -318,6 +343,17 @@ onMounted(loadDream)
           <div class="px-3 py-1 bg-gray-200 border border-gray-400">
             {{ dream.privacy === 'PRIVATE' ? 'Приватный' : 'Публичный' }}
           </div>
+        </div>
+
+        <div class="flex items-center gap-3 mb-4">
+          <button
+            v-if="!dream.hasLot"
+            @click="handleDeleteDream"
+            class="px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
+          >
+            Удалить сон
+          </button>
+          <span v-if="deleteError" class="text-red-600">{{ deleteError }}</span>
         </div>
 
         <div class="text-gray-600 mb-4">{{ dream.createdAt }}</div>

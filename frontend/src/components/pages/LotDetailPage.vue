@@ -3,9 +3,11 @@ import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Download } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
+import { useDreamsStore } from '../../stores/dreams'
 import { useSessionStore } from '../../stores/session'
 import { addLotComment, fetchLotComments, fetchLotRating, setLotRating, downloadLotAsset } from '../../api/lots'
 import { API_BASE } from '../../api/httpClient'
+import { confirmAction, normalizeErrorMessage, showError } from '../../ui/feedback'
 
 const props = defineProps({
   lotId: { type: Number, default: null },
@@ -14,6 +16,7 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const lotsStore = useLotsStore()
+const dreamsStore = useDreamsStore()
 const session = useSessionStore()
 
 const isPurchased = ref(false)
@@ -131,6 +134,7 @@ const submitComment = async () => {
   const text = commentInput.value.trim()
   if (!text) {
     commentError.value = 'Введите комментарий'
+    showError(commentError.value)
     return
   }
   try {
@@ -138,7 +142,7 @@ const submitComment = async () => {
     comments.value = [created, ...comments.value]
     commentInput.value = ''
   } catch (e) {
-    commentError.value = e?.data?.message || 'Не удалось отправить комментарий'
+    commentError.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось отправить комментарий')
   }
 }
 
@@ -156,6 +160,7 @@ const submitRating = async () => {
   if (!props.lotId || rating.saving) return
   if (!selectedRating.value) {
     ratingError.value = 'Выберите количество звёзд'
+    showError(ratingError.value)
     return
   }
   ratingError.value = ''
@@ -169,7 +174,7 @@ const submitRating = async () => {
     selectedRating.value = rating.userValue
     ratingSuccess.value = 'Оценка сохранена'
   } catch (e) {
-    ratingError.value = e?.data?.message || 'Нужно авторизоваться, чтобы поставить оценку'
+    ratingError.value = e?.userMessage || normalizeErrorMessage(e, 'Нужно авторизоваться, чтобы поставить оценку')
   } finally {
     rating.saving = false
   }
@@ -181,20 +186,28 @@ const handleDownload = async () => {
   try {
     await downloadLotAsset(lot.value.id)
   } catch (e) {
-    downloadError.value = 'Не удалось скачать файл'
+    downloadError.value = normalizeErrorMessage(e, 'Не удалось скачать файл')
+    showError(downloadError.value)
   }
 }
 
 const handleDelete = async () => {
   if (!lot.value || !canDeleteLot.value) return
   deleteError.value = ''
-  const confirmed = window.confirm('Удалить лот? Это действие нельзя отменить.')
+  const confirmed = await confirmAction({
+    title: 'Удалить лот?',
+    message: 'Лот будет удалён без возможности восстановления.',
+    confirmText: 'Удалить',
+    cancelText: 'Отмена',
+    tone: 'danger',
+  })
   if (!confirmed) return
   try {
     await lotsStore.deleteLot(lot.value.id)
+    await dreamsStore.loadDreams().catch(() => {})
     router.push(backTarget.value)
   } catch (e) {
-    deleteError.value = e?.data?.message || 'Не удалось удалить лот'
+    deleteError.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось удалить лот')
   }
 }
 

@@ -6,6 +6,7 @@ import { useLotsStore } from '../../stores/lots'
 import { useDreamsStore } from '../../stores/dreams'
 import { searchTags, fetchTagsByIds } from '../../api/tags'
 import { fetchCategories } from '../../api/categories'
+import { showError, normalizeErrorMessage } from '../../ui/feedback'
 
 const props = defineProps({
   dreamId: { type: Number, default: null },
@@ -150,11 +151,13 @@ const handlePublish = async () => {
   if (!hasContext.value) {
     status.value = 'error'
     errorMessage.value = 'Нет данных о выбранной визуализации'
+    showError(errorMessage.value)
     return
   }
   if (!title.value || !price.value) {
     status.value = 'error'
     errorMessage.value = 'Укажите название и цену'
+    showError(errorMessage.value)
     return
   }
 
@@ -178,8 +181,7 @@ const handlePublish = async () => {
     status.value = 'success'
   } catch (err) {
     status.value = 'error'
-    errorMessage.value =
-      err?.data?.message || err?.data?.error || err?.message || 'Не удалось создать лот'
+    errorMessage.value = err?.userMessage || normalizeErrorMessage(err, 'Не удалось создать лот')
   }
 }
 </script>

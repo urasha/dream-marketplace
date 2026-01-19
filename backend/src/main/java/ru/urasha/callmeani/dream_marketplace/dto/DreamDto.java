@@ -12,6 +12,7 @@ public record DreamDto(Long id,
                        Long categoryId,
                        Set<Long> tagIds,
                        Long visualizationId,
+                       boolean hasLot,
                        LocalDateTime createdAt,
                        LocalDateTime updatedAt) {
 }

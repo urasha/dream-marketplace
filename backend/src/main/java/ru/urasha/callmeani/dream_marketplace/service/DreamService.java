@@ -13,6 +13,7 @@ import ru.urasha.callmeani.dream_marketplace.models.enums.Privacy;
 import ru.urasha.callmeani.dream_marketplace.models.enums.VisualizationStatus;
 import ru.urasha.callmeani.dream_marketplace.repositories.CategoryRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.DreamRepository;
+import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.TagRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.VisualizationRepository;
 import ru.urasha.callmeani.dream_marketplace.service.dto.VisualizationRequestMessage;
@@ -29,17 +30,20 @@ public class DreamService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final VisualizationRepository visualizationRepository;
+    private final LotRepository lotRepository;
     private final VisualizationProducer visualizationProducer;
 
     public DreamService(DreamRepository dreamRepository,
                         CategoryRepository categoryRepository,
                         TagRepository tagRepository,
                         VisualizationRepository visualizationRepository,
+                        LotRepository lotRepository,
                         VisualizationProducer visualizationProducer) {
         this.dreamRepository = dreamRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.visualizationRepository = visualizationRepository;
+        this.lotRepository = lotRepository;
         this.visualizationProducer = visualizationProducer;
     }
 
@@ -170,5 +174,22 @@ public class DreamService {
 
         dream.setVisualization(vis);
         return vis;
+    }
+
+    @Transactional
+    public void deleteDream(Long dreamId, UserAccount user) {
+        DreamRecord dream = dreamRepository.findById(dreamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
+        if (!dream.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (lotRepository.existsByDreamRecordId(dreamId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Нельзя удалить сон: по нему создан лот");
+        }
+
+        dream.setVisualization(null);
+        dreamRepository.save(dream);
+        visualizationRepository.deleteByDreamRecord_Id(dreamId);
+        dreamRepository.delete(dream);
     }
 }

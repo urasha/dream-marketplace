@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
+import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
 import ru.urasha.callmeani.dream_marketplace.service.DreamService;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamCreateRequest;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamDto;
@@ -31,10 +33,12 @@ public class DreamController {
 
     private final DreamService dreamService;
     private final UserAccountService userAccountService;
+    private final LotRepository lotRepository;
 
-    public DreamController(DreamService dreamService, UserAccountService userAccountService) {
+    public DreamController(DreamService dreamService, UserAccountService userAccountService, LotRepository lotRepository) {
         this.dreamService = dreamService;
         this.userAccountService = userAccountService;
+        this.lotRepository = lotRepository;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -51,7 +55,8 @@ public class DreamController {
             request.tagIds(),
             request.tagNames()
         );
-        return ResponseEntity.ok(DreamMapper.toDto(dream));
+        boolean hasLot = lotRepository.existsByDreamRecordId(dream.getId());
+        return ResponseEntity.ok(DreamMapper.toDto(dream, hasLot));
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -59,7 +64,7 @@ public class DreamController {
     public ResponseEntity<List<DreamDto>> myDreams(@AuthenticationPrincipal JwtUserDetails details) {
         UserAccount user = requireUser(details);
         var dreams = dreamService.findOwn(user).stream()
-                .map(DreamMapper::toDto)
+            .map(dream -> DreamMapper.toDto(dream, lotRepository.existsByDreamRecordId(dream.getId())))
                 .toList();
         return ResponseEntity.ok(dreams);
     }
@@ -90,6 +95,14 @@ public class DreamController {
         UserAccount user = requireUser(details);
         var vis = dreamService.attachReadyVisualization(id, user, request);
         return ResponseEntity.ok(VisualizationMapper.toDto(vis));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
+        dreamService.deleteDream(id, user);
+        return ResponseEntity.noContent().build();
     }
 
     private UserAccount requireUser(JwtUserDetails details) {

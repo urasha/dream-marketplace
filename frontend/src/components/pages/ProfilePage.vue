@@ -8,6 +8,7 @@ import { useDreamsStore } from '../../stores/dreams'
 import { useLotsStore } from '../../stores/lots'
 import { fetchPurchases } from '../../api/purchases'
 import { API_BASE } from '../../api/httpClient'
+import { confirmAction, normalizeErrorMessage } from '../../ui/feedback'
 
 const props = defineProps({
   userBalance: { type: Number, required: true },
@@ -39,6 +40,7 @@ const emailInput = ref('')
 const purchases = ref([])
 const purchasesLoading = ref(false)
 const purchasesError = ref('')
+const deleteDreamError = ref('')
 const deleteError = ref('')
 
 const dreams = computed(() => dreamsStore.state.items)
@@ -89,6 +91,7 @@ const dreamCards = computed(() =>
     date: formatDate(dream.createdAt),
     tags: [],
     isPrivate: dream.privacy === 'PRIVATE',
+    hasLot: Boolean(dream.hasLot),
   }))
 )
 
@@ -138,15 +141,40 @@ const handleUpdateProfile = async () => {
   }
 }
 
+const handleDeleteDream = async (dreamId) => {
+  deleteDreamError.value = ''
+  if (!dreamId) return
+  const confirmed = await confirmAction({
+    title: 'Удалить сон?',
+    message: 'Сон будет удалён без возможности восстановления.',
+    confirmText: 'Удалить',
+    cancelText: 'Отмена',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  try {
+    await dreamsStore.deleteDream(dreamId)
+  } catch (err) {
+    deleteDreamError.value = err?.userMessage || normalizeErrorMessage(err, 'Не удалось удалить сон')
+  }
+}
+
 const handleDeleteLot = async (lotId) => {
   deleteError.value = ''
   if (!lotId) return
-  const confirmed = window.confirm('Удалить лот? Это действие нельзя отменить.')
+  const confirmed = await confirmAction({
+    title: 'Удалить лот?',
+    message: 'Лот будет удалён без возможности восстановления.',
+    confirmText: 'Удалить',
+    cancelText: 'Отмена',
+    tone: 'danger',
+  })
   if (!confirmed) return
   try {
     await lotsStore.deleteLot(lotId)
+    await dreamsStore.loadDreams().catch(() => {})
   } catch (err) {
-    deleteError.value = err?.data?.message || 'Не удалось удалить лот'
+    deleteError.value = err?.userMessage || normalizeErrorMessage(err, 'Не удалось удалить лот')
   }
 }
 
@@ -267,15 +295,23 @@ const handleLogout = async () => {
           Создать запись
         </button>
       </div>
+      <div v-if="deleteDreamError" class="text-red-600 mb-3">{{ deleteDreamError }}</div>
       <div v-if="dreamsLoading" class="text-gray-600">Загружаем сны...</div>
       <div v-else-if="dreamCards.length === 0" class="text-gray-600">Сны пока не созданы</div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DreamCard
-          v-for="dream in dreamCards"
-          :key="dream.id"
-          v-bind="dream"
-          @click="router.push({ name: 'dream-detail', params: { id: dream.id } })"
-        />
+        <div v-for="dream in dreamCards" :key="dream.id" class="space-y-2">
+          <DreamCard
+            v-bind="dream"
+            @click="router.push({ name: 'dream-detail', params: { id: dream.id } })"
+          />
+          <button
+            v-if="!dream.hasLot"
+            class="w-full px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
+            @click="handleDeleteDream(dream.id)"
+          >
+            Удалить сон
+          </button>
+        </div>
       </div>
     </div>
 
