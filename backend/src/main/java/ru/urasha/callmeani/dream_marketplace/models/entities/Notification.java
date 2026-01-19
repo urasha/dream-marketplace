@@ -20,6 +20,12 @@ public class Notification {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    @Column(name = "target_lot_id")
+    private Long targetLotId;
+
+    @Column(name = "target_comment_id")
+    private Long targetCommentId;
+
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
