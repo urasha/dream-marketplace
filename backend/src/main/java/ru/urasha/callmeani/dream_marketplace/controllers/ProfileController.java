@@ -14,15 +14,21 @@ import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.dto.UserDto;
 import ru.urasha.callmeani.dream_marketplace.dto.ProfileUpdateRequest;
 import ru.urasha.callmeani.dream_marketplace.mappers.UserMapper;
+import ru.urasha.callmeani.dream_marketplace.dto.PurchaseItemDto;
+import ru.urasha.callmeani.dream_marketplace.service.PurchaseService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {
 
     private final UserAccountService userAccountService;
+    private final PurchaseService purchaseService;
 
-    public ProfileController(UserAccountService userAccountService) {
+    public ProfileController(UserAccountService userAccountService, PurchaseService purchaseService) {
         this.userAccountService = userAccountService;
+        this.purchaseService = purchaseService;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -50,5 +56,11 @@ public class ProfileController {
                         userAccountService.updateProfile(details.userId(), request.username(), request.email())
                 )
         );
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/purchases")
+    public ResponseEntity<List<PurchaseItemDto>> purchases(@AuthenticationPrincipal JwtUserDetails details) {
+        return ResponseEntity.ok(purchaseService.listPurchases(details.userId()));
     }
 }

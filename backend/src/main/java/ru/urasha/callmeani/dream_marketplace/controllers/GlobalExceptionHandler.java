@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import ru.urasha.callmeani.dream_marketplace.dto.ErrorResponse;
 
-@RestControllerAdvice(assignableTypes = {LotController.class})
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)

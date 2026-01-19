@@ -2,11 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { User, Plus } from 'lucide-vue-next'
-import { userTransactions } from '../../data/mockData'
 import DreamCard from '../cards/DreamCard.vue'
 import { useSessionStore } from '../../stores/session'
 import { useDreamsStore } from '../../stores/dreams'
 import { useLotsStore } from '../../stores/lots'
+import { fetchPurchases } from '../../api/purchases'
+import { API_BASE } from '../../api/httpClient'
 
 const props = defineProps({
   userBalance: { type: Number, required: true },
@@ -19,7 +20,7 @@ const session = useSessionStore()
 const dreamsStore = useDreamsStore()
 const lotsStore = useLotsStore()
 
-const activeTab = ref(route.query.tab === 'lots' ? 'lots' : 'dreams')
+const activeTab = ref(['lots', 'purchases', 'dreams'].includes(route.query.tab) ? route.query.tab : 'dreams')
 const updateStatus = ref('idle')
 const updateError = ref('')
 
@@ -35,10 +36,15 @@ const displayEmail = computed(() => session.state.profile?.email || '—')
 const usernameInput = ref('')
 const emailInput = ref('')
 
+const purchases = ref([])
+const purchasesLoading = ref(false)
+const purchasesError = ref('')
+
 const dreams = computed(() => dreamsStore.state.items)
 const dreamsLoading = computed(() => dreamsStore.state.loading)
 const profileLoading = computed(() => session.state.loading)
 const myLots = computed(() => lotsStore.state.mine)
+const purchasesCount = computed(() => purchases.value.length)
 
 const lotStatusLabels = {
   OPEN: 'Открыт',
@@ -62,6 +68,17 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU')
 }
 
+const resolvePreviewUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
+}
+
 const dreamCards = computed(() =>
   dreams.value.map((dream) => ({
     id: dream.id,
@@ -72,6 +89,19 @@ const dreamCards = computed(() =>
   }))
 )
 
+const loadPurchases = async () => {
+  purchasesLoading.value = true
+  purchasesError.value = ''
+  try {
+    purchases.value = await fetchPurchases()
+  } catch (err) {
+    purchases.value = []
+    purchasesError.value = err?.data?.message || 'Не удалось загрузить покупки'
+  } finally {
+    purchasesLoading.value = false
+  }
+}
+
 onMounted(async () => {
   if (!session.state.profile) {
     await session.loadProfile().catch(() => {})
@@ -80,6 +110,7 @@ onMounted(async () => {
   emailInput.value = session.state.profile?.email || ''
   await dreamsStore.loadDreams().catch(() => {})
   await lotsStore.loadMyLots().catch(() => {})
+  await loadPurchases()
 })
 
 const handleUpdateProfile = async () => {
@@ -136,7 +167,15 @@ const handleLogout = async () => {
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div class="text-gray-600">Баланс</div>
+              <div class="text-gray-600 flex items-center gap-2">
+                Баланс
+                <button
+                  @click="router.push({ name: 'wallet' })"
+                  class="px-2 py-1 text-xs bg-violet-50 text-violet-700 rounded border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+                >
+                  Пополнить
+                </button>
+              </div>
               <div class="text-violet-600">{{ userBalance }} ₽</div>
             </div>
             <div>
@@ -145,7 +184,7 @@ const handleLogout = async () => {
             </div>
             <div>
               <div class="text-gray-600">Покупок</div>
-              <div>{{ userTransactions.filter((t) => t.type === 'purchase').length }}</div>
+              <div>{{ purchasesCount }}</div>
             </div>
           </div>
         </div>
@@ -265,7 +304,47 @@ const handleLogout = async () => {
     </div>
 
     <div v-else>
-      <div class="text-gray-600">Здесь будут ваши покупки, когда появятся реальные транзакции.</div>
+      <div v-if="purchasesLoading" class="text-gray-600">Загружаем покупки...</div>
+      <div v-else-if="purchasesError" class="text-red-600">{{ purchasesError }}</div>
+      <div v-else-if="purchases.length === 0" class="text-gray-600">Покупок пока нет</div>
+      <div v-else class="space-y-4">
+        <button
+          v-for="purchase in purchases"
+          :key="purchase.id"
+          class="w-full text-left p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+          @click="router.push({ name: 'lot-detail', params: { id: purchase.lotId }, query: { from: 'profile-purchases' } })"
+        >
+          <div class="flex items-start gap-4">
+            <div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+              <img
+                v-if="purchase.visualizationUrl"
+                :src="resolvePreviewUrl(purchase.visualizationUrl)"
+                alt="Визуализация"
+                class="w-full h-full object-cover"
+              />
+              <span v-else class="text-xs text-gray-400">Нет превью</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="mb-2">{{ purchase.lotTitle }}</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <div class="text-gray-600">Автор</div>
+                  <div>{{ purchase.authorName || '—' }}</div>
+                </div>
+                <div>
+                  <div class="text-gray-600">Цена</div>
+                  <div>{{ purchase.amount }} ₽</div>
+                </div>
+                <div>
+                  <div class="text-gray-600">Дата покупки</div>
+                  <div>{{ formatDate(purchase.purchasedAt) }}</div>
+                </div>
+              </div>
+            </div>
+            <span class="text-violet-600">Открыть →</span>
+          </div>
+        </button>
+      </div>
     </div>
   </div>
 </template>

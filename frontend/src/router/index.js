@@ -9,6 +9,7 @@ const PurchaseFlow = () => import('../components/pages/PurchaseFlow.vue')
 const ProfilePage = () => import('../components/pages/ProfilePage.vue')
 const NotificationsPage = () => import('../components/pages/NotificationsPage.vue')
 const AdminPage = () => import('../components/pages/AdminPage.vue')
+const WalletPage = () => import('../components/pages/WalletPage.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -28,6 +29,9 @@ export const router = createRouter({
     { path: '/lots/:id', name: 'lot-detail', component: LotDetailPage, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/purchase/:id', name: 'purchase', component: PurchaseFlow, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/profile', name: 'profile', component: ProfilePage },
+    { path: '/wallet', name: 'wallet', component: WalletPage },
+    { path: '/payments/success', redirect: { name: 'wallet' } },
+    { path: '/payments/fail', redirect: { name: 'wallet' } },
     { path: '/notifications', name: 'notifications', component: NotificationsPage },
     { path: '/admin', name: 'admin', component: AdminPage },
     { path: '/:pathMatch(.*)*', redirect: '/' },

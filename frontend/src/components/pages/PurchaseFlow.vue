@@ -3,6 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
+import { useSessionStore } from '../../stores/session'
+import { createDeposit, fetchPaymentStatus, fetchWallet } from '../../api/payments'
+import { buyLot } from '../../api/lots'
 
 const props = defineProps({
   lotId: { type: Number, default: null },
@@ -12,40 +15,122 @@ const props = defineProps({
 const emit = defineEmits(['updateBalance'])
 const router = useRouter()
 const lotsStore = useLotsStore()
+const session = useSessionStore()
 
 const step = ref('confirm')
 const selectedAmount = ref(null)
+const paymentId = ref(null)
+const paymentStatus = ref(null)
+const paymentChecking = ref(false)
+const paymentError = ref('')
+const purchaseError = ref('')
+const purchaseProcessing = ref(false)
 
 const lot = computed(() => lotsStore.state.current)
 const hasSufficientBalance = computed(() => (lot.value ? props.userBalance >= lot.value.price : false))
+const isOwner = computed(() => {
+  const userId = session.state.profile?.id
+  return Boolean(userId && lot.value && lot.value.authorId === userId)
+})
+const isAvailableForPurchase = computed(() => {
+  return Boolean(lot.value && lot.value.status === 'OPEN')
+})
 
-onMounted(() => {
+onMounted(async () => {
+  if (!session.state.profile) {
+    await session.loadProfile().catch(() => {})
+  }
   if (props.lotId) {
     lotsStore.loadLot(props.lotId).catch(() => {})
   }
+
+  const savedId = window.localStorage.getItem('dm_last_payment_id')
+  if (savedId) {
+    paymentId.value = savedId
+    step.value = 'topup'
+    checkPaymentStatus()
+  }
 })
 
-const handleConfirmPurchase = () => {
-  if (!lot.value) return
-  if (hasSufficientBalance.value) {
-    step.value = 'processing'
-    setTimeout(() => {
-      emit('updateBalance', props.userBalance - lot.value.price)
-      step.value = 'success'
-    }, 1500)
-  } else {
+const handleConfirmPurchase = async () => {
+  if (!lot.value || purchaseProcessing.value) return
+  purchaseError.value = ''
+
+  if (!isAvailableForPurchase.value) {
+    purchaseError.value = 'Лот недоступен для покупки'
+    return
+  }
+
+  if (isOwner.value) {
+    purchaseError.value = 'Нельзя купить собственный лот'
+    return
+  }
+
+  if (!hasSufficientBalance.value) {
     step.value = 'insufficient'
+    return
+  }
+
+  step.value = 'processing'
+  purchaseProcessing.value = true
+  try {
+    await buyLot(lot.value.id)
+    const wallet = await fetchWallet().catch(() => null)
+    const balance = wallet?.balance !== undefined
+      ? Number(wallet.balance)
+      : props.userBalance - Number(lot.value.price || 0)
+    emit('updateBalance', balance)
+    step.value = 'success'
+  } catch (e) {
+    purchaseError.value = e?.data?.message || 'Не удалось выполнить покупку'
+    step.value = 'confirm'
+  } finally {
+    purchaseProcessing.value = false
   }
 }
 
-const handleTopUp = () => {
+const handleTopUp = async () => {
   if (!selectedAmount.value) return
+  paymentError.value = ''
   step.value = 'processing'
-  setTimeout(() => {
-    emit('updateBalance', props.userBalance + selectedAmount.value)
-    step.value = 'confirm'
-    selectedAmount.value = null
-  }, 1500)
+  try {
+    const payment = await createDeposit(selectedAmount.value)
+    if (!payment?.id || !payment?.confirmationUrl) {
+      throw new Error('Не удалось создать платеж')
+    }
+    paymentId.value = payment.id
+    paymentStatus.value = payment.status
+    window.localStorage.setItem('dm_last_payment_id', payment.id)
+    window.location.href = payment.confirmationUrl
+  } catch (e) {
+    paymentError.value = e?.data?.message || e?.message || 'Ошибка создания платежа'
+    step.value = 'topup'
+  }
+}
+
+const checkPaymentStatus = async () => {
+  if (!paymentId.value) return
+  paymentChecking.value = true
+  paymentError.value = ''
+  try {
+    const payment = await fetchPaymentStatus(paymentId.value)
+    paymentStatus.value = payment?.status || null
+    if (paymentStatus.value === 'SUCCEEDED') {
+      window.localStorage.removeItem('dm_last_payment_id')
+      const wallet = await fetchWallet().catch(() => null)
+      const balance = wallet?.balance !== undefined ? Number(wallet.balance) : props.userBalance
+      emit('updateBalance', balance)
+      selectedAmount.value = null
+      step.value = 'confirm'
+    } else if (paymentStatus.value === 'CANCELED' || paymentStatus.value === 'FAILED') {
+      window.localStorage.removeItem('dm_last_payment_id')
+      paymentError.value = 'Платеж отменен или не удался'
+    }
+  } catch (e) {
+    paymentError.value = e?.data?.message || 'Не удалось проверить статус'
+  } finally {
+    paymentChecking.value = false
+  }
 }
 </script>
 
@@ -101,13 +186,29 @@ const handleTopUp = () => {
         </div>
       </div>
 
+      <div v-if="!isAvailableForPurchase" class="p-4 bg-gray-50 border-2 border-gray-300 mb-8 flex items-start gap-3">
+        <AlertCircle class="w-6 h-6 flex-shrink-0" />
+        <div>
+          <h3>Покупка недоступна</h3>
+          <p class="text-gray-700">Этот лот уже продан или снят с продажи.</p>
+        </div>
+      </div>
+
+      <div v-else-if="isOwner" class="p-4 bg-yellow-50 border-2 border-yellow-600 mb-8 flex items-start gap-3">
+        <AlertCircle class="w-6 h-6 flex-shrink-0" />
+        <div>
+          <h3>Покупка недоступна</h3>
+          <p class="text-gray-700">Вы не можете купить собственный лот.</p>
+        </div>
+      </div>
+
       <div class="flex gap-4">
         <button
           @click="handleConfirmPurchase"
-          :disabled="!hasSufficientBalance"
+          :disabled="!hasSufficientBalance || isOwner || purchaseProcessing || !isAvailableForPurchase"
           class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          Подтвердить покупку
+          {{ purchaseProcessing ? 'Покупаем...' : 'Подтвердить покупку' }}
         </button>
         <button
           @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
@@ -115,6 +216,10 @@ const handleTopUp = () => {
         >
           Отмена
         </button>
+      </div>
+
+      <div v-if="purchaseError" class="mt-4 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+        {{ purchaseError }}
       </div>
     </template>
 
@@ -130,9 +235,14 @@ const handleTopUp = () => {
         </p>
       </div>
 
-      <button @click="step = 'topup'" class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors">
-        Пополнить баланс
-      </button>
+      <div class="space-y-4">
+        <button @click="step = 'topup'" class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors">
+          Пополнить баланс
+        </button>
+        <div v-if="paymentError" class="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          {{ paymentError }}
+        </div>
+      </div>
     </template>
 
     <template v-else-if="step === 'topup'">
@@ -165,17 +275,34 @@ const handleTopUp = () => {
         </button>
       </div>
 
-      <div class="p-4 bg-blue-50 border-2 border-blue-600 mb-8">
-        <p class="text-gray-700">Это демо-экран. В бою здесь была бы интеграция с платёжной системой.</p>
-      </div>
+      <div class="space-y-3">
+        <button
+          @click="handleTopUp"
+          :disabled="!selectedAmount || paymentChecking"
+          class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {{ paymentChecking ? 'Создаём платёж...' : selectedAmount ? `Перейти к оплате ${selectedAmount} ₽` : 'Выберите сумму' }}
+        </button>
 
-      <button
-        @click="handleTopUp"
-        :disabled="!selectedAmount"
-        class="w-full py-4 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-      >
-        {{ selectedAmount ? `Пополнить на ${selectedAmount} ₽` : 'Выберите сумму' }}
-      </button>
+        <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg" v-if="paymentId">
+          <div>
+            <div class="text-sm text-gray-600">Последний платеж</div>
+            <div class="text-gray-900 text-sm">{{ paymentId }}</div>
+            <div class="text-xs text-gray-500">Статус: {{ paymentStatus || 'PENDING' }}</div>
+          </div>
+          <button
+            @click="checkPaymentStatus"
+            :disabled="paymentChecking"
+            class="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-black disabled:opacity-60"
+          >
+            {{ paymentChecking ? 'Проверяем...' : 'Проверить статус' }}
+          </button>
+        </div>
+
+        <div v-if="paymentError" class="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          {{ paymentError }}
+        </div>
+      </div>
     </template>
 
     <template v-else-if="step === 'processing'">
