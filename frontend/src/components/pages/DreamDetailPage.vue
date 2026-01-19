@@ -357,7 +357,7 @@ onMounted(loadDream)
                 <img
                   :src="resolvePreviewUrl(viz.filePath) || imageGenConfig.mockUrl"
                   alt="viz"
-                  class="w-full h-full object-cover transition-transform duration-200 hover:scale-105 block"
+                  class="w-full h-full object-cover transition-transform duration-200 hover:scale-105 block clickable-image"
                 />
               </div>
               <div>
@@ -390,7 +390,7 @@ onMounted(loadDream)
               :class="selectedResult === url ? 'border-black' : 'border-gray-200'"
               @click="selectResult(url)"
             >
-              <img :src="url" alt="generated option" class="w-full h-36 object-cover block" />
+              <img :src="url" alt="generated option" class="w-full h-36 object-cover block clickable-image" />
               <div class="watermark-overlay">Dream Marketplace</div>
               <div
                 v-if="selectedResult === url"

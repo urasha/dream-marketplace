@@ -25,6 +25,7 @@ const commentsLoading = ref(false)
 const commentInput = ref('')
 const commentError = ref('')
 const downloadError = ref('')
+const previewSrc = ref('')
 
 const rating = reactive({
   average: 0,
@@ -167,6 +168,15 @@ const handleDownload = async () => {
   }
 }
 
+const openPreview = (url) => {
+  if (!url) return
+  previewSrc.value = url
+}
+
+const closePreview = () => {
+  previewSrc.value = ''
+}
+
 const formatDate = (iso) => {
   if (!iso) return ''
   const d = new Date(iso)
@@ -188,12 +198,13 @@ const formatDate = (iso) => {
     <template v-else-if="lot">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
         <div>
-          <div class="w-full aspect-[4/3] bg-gray-100 border-2 border-gray-300 flex items-center justify-center mb-4 overflow-hidden">
+          <div class="w-full aspect-[4/3] bg-gray-100 border-2 border-gray-300 flex items-center justify-center mb-4 overflow-hidden rounded-lg">
             <img
               v-if="resolvedPreviewUrl"
               :src="resolvedPreviewUrl"
               alt="Визуализация"
-              class="w-full h-full object-cover block"
+              class="w-full h-full object-cover block clickable-image"
+              @click="openPreview(resolvedPreviewUrl)"
             />
             <div v-else class="text-gray-400">Визуализация</div>
           </div>
@@ -333,4 +344,46 @@ const formatDate = (iso) => {
 
     <p v-else>Лот не найден</p>
   </div>
+
+  <Transition name="lightbox">
+    <div v-if="previewSrc" class="lightbox-overlay" @click="closePreview">
+      <img :src="previewSrc" alt="preview" class="lightbox-image" @click.stop />
+    </div>
+  </Transition>
 </template>
+
+<style>
+.lightbox-enter-active,
+.lightbox-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.lightbox-enter-from,
+.lightbox-leave-to {
+  opacity: 0;
+}
+
+.lightbox-enter-to,
+.lightbox-leave-from {
+  opacity: 1;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+</style>

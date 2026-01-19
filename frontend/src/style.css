@@ -1678,6 +1678,15 @@ html {
   font-size: var(--font-size);
 }
 
+button img,
+a img {
+  cursor: pointer;
+}
+
+.clickable-image {
+  cursor: zoom-in;
+}
+
 .page-title {
   font-size: 2rem;
   line-height: 1.1;
