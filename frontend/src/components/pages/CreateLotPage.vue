@@ -167,8 +167,8 @@ const handlePublish = async () => {
 
     <div v-if="status === 'success'" class="p-12 text-center border-2 border-green-600 bg-green-50">
       <CheckCircle class="w-16 h-16 mx-auto mb-4" />
-      <h2 class="mb-4">Лот создан</h2>
-      <p class="text-gray-700 mb-6">Ваша визуализация опубликована как лот.</p>
+      <h2 class="mb-4">Лот отправлен на модерацию</h2>
+      <p class="text-gray-700 mb-6">После проверки модератором лот появится в каталоге.</p>
       <div class="flex gap-4 justify-center">
         <button
           v-if="createdLotId"

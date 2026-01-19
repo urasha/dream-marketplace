@@ -46,7 +46,7 @@ public class Lot {
     protected void onCreate() {
         this.submittedAt = LocalDateTime.now();
         if (this.status == null) {
-            this.status = LotStatus.OPEN;
+            this.status = LotStatus.PENDING;
         }
     }
 }

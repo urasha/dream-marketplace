@@ -11,11 +11,14 @@ import ru.urasha.callmeani.dream_marketplace.models.entities.Lot;
 import ru.urasha.callmeani.dream_marketplace.models.enums.LotStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LotRepository extends JpaRepository<Lot, Long> {
 
     boolean existsByDreamRecordId(Long dreamRecordId);
+
+    Optional<Lot> findByDreamRecordId(Long dreamRecordId);
 
     @EntityGraph(attributePaths = {
         "dreamRecord",

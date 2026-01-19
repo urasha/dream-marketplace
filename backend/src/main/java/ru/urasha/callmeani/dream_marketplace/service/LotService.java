@@ -70,7 +70,18 @@ public class LotService {
         if (visualization.getStatus() != VisualizationStatus.ACCEPTED && visualization.getStatus() != VisualizationStatus.READY) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Visualization is not ready for publishing");
         }
-        if (lotRepository.existsByDreamRecordId(dream.getId())) {
+        var existingLotOpt = lotRepository.findByDreamRecordId(dream.getId());
+        if (existingLotOpt.isPresent()) {
+            Lot existing = existingLotOpt.get();
+            if (existing.getStatus() == LotStatus.CLOSED) {
+                existing.setTitle(title);
+                existing.setDescription(description);
+                existing.setPrice(price);
+                existing.setStatus(LotStatus.PENDING);
+                existing.setReviewedAt(null);
+                existing.setModerationReason(null);
+                return lotRepository.save(existing);
+            }
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Для этой визуализации уже опубликован лот. Нельзя создать второй." );
         }
@@ -80,6 +91,7 @@ public class LotService {
         lot.setTitle(title);
         lot.setDescription(description);
         lot.setPrice(price);
+        lot.setStatus(LotStatus.PENDING);
 
         if (categoryId != null) {
             Category category = categoryRepository.findById(categoryId)
