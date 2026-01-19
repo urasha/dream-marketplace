@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_BASE } from '../../api/httpClient'
 import { ArrowLeft, Loader, CheckCircle } from 'lucide-vue-next'
 import { useDreamsStore } from '../../stores/dreams'
 import { createImageGeneration, fetchImageGeneration } from '../../api/images'
@@ -194,6 +195,17 @@ const handleRequestGeneration = async () => {
   }
 }
 
+const resolvePreviewUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
+}
+
 const persistVisualization = async (filePath, mime) => {
   if (!dream.value) return null
   try {
@@ -340,10 +352,10 @@ onMounted(loadDream)
               <div
                 v-if="viz.filePath || isMock"
                 class="w-24 h-24 rounded border overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer"
-                @click="openPreview(viz.filePath || imageGenConfig.mockUrl)"
+                @click="openPreview(resolvePreviewUrl(viz.filePath) || imageGenConfig.mockUrl)"
               >
                 <img
-                  :src="viz.filePath || imageGenConfig.mockUrl"
+                  :src="resolvePreviewUrl(viz.filePath) || imageGenConfig.mockUrl"
                   alt="viz"
                   class="w-full h-full object-cover transition-transform duration-200 hover:scale-105 block"
                 />
@@ -379,6 +391,7 @@ onMounted(loadDream)
               @click="selectResult(url)"
             >
               <img :src="url" alt="generated option" class="w-full h-36 object-cover block" />
+              <div class="watermark-overlay">Dream Marketplace</div>
               <div
                 v-if="selectedResult === url"
                 class="absolute inset-0 bg-black/30 text-white flex items-center justify-center text-sm font-semibold"
@@ -456,6 +469,28 @@ onMounted(loadDream)
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.watermark-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  background-image: repeating-linear-gradient(
+    -25deg,
+    rgba(0, 0, 0, 0.2) 0,
+    rgba(0, 0, 0, 0.2) 40px,
+    rgba(0, 0, 0, 0) 40px,
+    rgba(0, 0, 0, 0) 80px
+  );
+  pointer-events: none;
 }
 
 .lightbox-enter-from .lightbox-image,

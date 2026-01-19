@@ -29,7 +29,7 @@ public final class LotMapper {
             lot.getId(),
             dream != null ? dream.getId() : null,
             vis != null ? vis.getId() : null,
-            vis != null ? vis.getFilePath() : null,
+            vis != null ? "/api/lots/" + lot.getId() + "/preview" : null,
             lot.getTitle(),
             lot.getDescription(),
             lot.getPrice(),

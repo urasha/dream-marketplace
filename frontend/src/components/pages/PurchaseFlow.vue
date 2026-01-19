@@ -3,7 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
+import { useSessionStore } from '../../stores/session'
 import { createDeposit, fetchPaymentStatus, fetchWallet } from '../../api/payments'
+import { buyLot } from '../../api/lots'
 
 const props = defineProps({
   lotId: { type: Number, default: null },
@@ -13,6 +15,7 @@ const props = defineProps({
 const emit = defineEmits(['updateBalance'])
 const router = useRouter()
 const lotsStore = useLotsStore()
+const session = useSessionStore()
 
 const step = ref('confirm')
 const selectedAmount = ref(null)
@@ -20,11 +23,23 @@ const paymentId = ref(null)
 const paymentStatus = ref(null)
 const paymentChecking = ref(false)
 const paymentError = ref('')
+const purchaseError = ref('')
+const purchaseProcessing = ref(false)
 
 const lot = computed(() => lotsStore.state.current)
 const hasSufficientBalance = computed(() => (lot.value ? props.userBalance >= lot.value.price : false))
+const isOwner = computed(() => {
+  const userId = session.state.profile?.id
+  return Boolean(userId && lot.value && lot.value.authorId === userId)
+})
+const isAvailableForPurchase = computed(() => {
+  return Boolean(lot.value && lot.value.status === 'OPEN')
+})
 
-onMounted(() => {
+onMounted(async () => {
+  if (!session.state.profile) {
+    await session.loadProfile().catch(() => {})
+  }
   if (props.lotId) {
     lotsStore.loadLot(props.lotId).catch(() => {})
   }
@@ -37,16 +52,40 @@ onMounted(() => {
   }
 })
 
-const handleConfirmPurchase = () => {
-  if (!lot.value) return
-  if (hasSufficientBalance.value) {
-    step.value = 'processing'
-    setTimeout(() => {
-      emit('updateBalance', props.userBalance - lot.value.price)
-      step.value = 'success'
-    }, 1500)
-  } else {
+const handleConfirmPurchase = async () => {
+  if (!lot.value || purchaseProcessing.value) return
+  purchaseError.value = ''
+
+  if (!isAvailableForPurchase.value) {
+    purchaseError.value = 'Лот недоступен для покупки'
+    return
+  }
+
+  if (isOwner.value) {
+    purchaseError.value = 'Нельзя купить собственный лот'
+    return
+  }
+
+  if (!hasSufficientBalance.value) {
     step.value = 'insufficient'
+    return
+  }
+
+  step.value = 'processing'
+  purchaseProcessing.value = true
+  try {
+    await buyLot(lot.value.id)
+    const wallet = await fetchWallet().catch(() => null)
+    const balance = wallet?.balance !== undefined
+      ? Number(wallet.balance)
+      : props.userBalance - Number(lot.value.price || 0)
+    emit('updateBalance', balance)
+    step.value = 'success'
+  } catch (e) {
+    purchaseError.value = e?.data?.message || 'Не удалось выполнить покупку'
+    step.value = 'confirm'
+  } finally {
+    purchaseProcessing.value = false
   }
 }
 
@@ -147,13 +186,29 @@ const checkPaymentStatus = async () => {
         </div>
       </div>
 
+      <div v-if="!isAvailableForPurchase" class="p-4 bg-gray-50 border-2 border-gray-300 mb-8 flex items-start gap-3">
+        <AlertCircle class="w-6 h-6 flex-shrink-0" />
+        <div>
+          <h3>Покупка недоступна</h3>
+          <p class="text-gray-700">Этот лот уже продан или снят с продажи.</p>
+        </div>
+      </div>
+
+      <div v-else-if="isOwner" class="p-4 bg-yellow-50 border-2 border-yellow-600 mb-8 flex items-start gap-3">
+        <AlertCircle class="w-6 h-6 flex-shrink-0" />
+        <div>
+          <h3>Покупка недоступна</h3>
+          <p class="text-gray-700">Вы не можете купить собственный лот.</p>
+        </div>
+      </div>
+
       <div class="flex gap-4">
         <button
           @click="handleConfirmPurchase"
-          :disabled="!hasSufficientBalance"
+          :disabled="!hasSufficientBalance || isOwner || purchaseProcessing || !isAvailableForPurchase"
           class="px-8 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          Подтвердить покупку
+          {{ purchaseProcessing ? 'Покупаем...' : 'Подтвердить покупку' }}
         </button>
         <button
           @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
@@ -161,6 +216,10 @@ const checkPaymentStatus = async () => {
         >
           Отмена
         </button>
+      </div>
+
+      <div v-if="purchaseError" class="mt-4 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+        {{ purchaseError }}
       </div>
     </template>
 

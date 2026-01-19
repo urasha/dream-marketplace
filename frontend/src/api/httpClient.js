@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 function getToken() {
   try {
@@ -14,6 +14,10 @@ function getToken() {
   } catch (e) {
     return null
   }
+}
+
+export function getAuthToken() {
+  return getToken()
 }
 
 async function parseJsonSafe(response) {
