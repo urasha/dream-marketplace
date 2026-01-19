@@ -27,17 +27,20 @@ public class PurchaseService {
     private final TransactionRepository transactionRepository;
     private final MarketplaceProperties marketplaceProperties;
     private final PlatformWalletService platformWalletService;
+    private final NotificationService notificationService;
 
     public PurchaseService(LotRepository lotRepository,
                            UserAccountRepository userAccountRepository,
                            TransactionRepository transactionRepository,
                            MarketplaceProperties marketplaceProperties,
-                           PlatformWalletService platformWalletService) {
+                           PlatformWalletService platformWalletService,
+                           NotificationService notificationService) {
         this.lotRepository = lotRepository;
         this.userAccountRepository = userAccountRepository;
         this.transactionRepository = transactionRepository;
         this.marketplaceProperties = marketplaceProperties;
         this.platformWalletService = platformWalletService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -96,6 +99,10 @@ public class PurchaseService {
         userAccountRepository.save(buyer);
         userAccountRepository.save(seller);
         lotRepository.save(lot);
+
+        String buyerName = buyer.getUsername() != null ? buyer.getUsername() : "Пользователь";
+        String message = "Ваш лот «" + lot.getTitle() + "» купили. Покупатель: " + buyerName + ". Сумма: " + price + " ₽.";
+        notificationService.notifyUser(seller, message);
 
         return new TransactionDto(tx.getId(), lot.getId(), buyer.getId(), seller.getId(), price, tx.getFee(), tx.getTransactionDate());
     }

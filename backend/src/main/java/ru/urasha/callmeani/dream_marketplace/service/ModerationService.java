@@ -22,10 +22,14 @@ public class ModerationService {
 
     private final LotRepository lotRepository;
     private final ModerationLogRepository moderationLogRepository;
+    private final NotificationService notificationService;
 
-    public ModerationService(LotRepository lotRepository, ModerationLogRepository moderationLogRepository) {
+    public ModerationService(LotRepository lotRepository,
+                             ModerationLogRepository moderationLogRepository,
+                             NotificationService notificationService) {
         this.lotRepository = lotRepository;
         this.moderationLogRepository = moderationLogRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -60,6 +64,8 @@ public class ModerationService {
         log.setLot(lot);
         log.setAction("approved");
         moderationLogRepository.save(log);
+
+        notifyAuthor(lot, "Лот «" + lot.getTitle() + "» прошел модерацию и опубликован.");
     }
 
     @Transactional
@@ -81,6 +87,21 @@ public class ModerationService {
         log.setAction("rejected");
         log.setReason(reason);
         moderationLogRepository.save(log);
+
+        String message = "Лот «" + lot.getTitle() + "» отклонен модерацией";
+        if (reason != null && !reason.isBlank()) {
+            message += ". Причина: " + reason.trim();
+        }
+        notificationService.notifyUser(lot.getDreamRecord() != null ? lot.getDreamRecord().getUser() : null, message);
+    }
+
+    private void notifyAuthor(Lot lot, String message) {
+        if (lot == null) {
+            return;
+        }
+        var dream = lot.getDreamRecord();
+        var author = dream != null ? dream.getUser() : null;
+        notificationService.notifyUser(author, message);
     }
 
     private ModerationQueueItemDto toQueueDto(Lot lot) {

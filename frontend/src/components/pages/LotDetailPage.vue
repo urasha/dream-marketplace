@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Download } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
@@ -78,6 +78,16 @@ onMounted(() => {
     loadRating()
   }
 })
+
+watch(
+  () => props.lotId,
+  (nextId, prevId) => {
+    if (!nextId || nextId === prevId) return
+    lotsStore.loadLot(nextId).catch(() => {})
+    loadComments()
+    loadRating()
+  }
+)
 
 const loadComments = async () => {
   if (!props.lotId) return
@@ -182,6 +192,43 @@ const formatDate = (iso) => {
   const d = new Date(iso)
   return d.toLocaleString()
 }
+
+const activeCommentId = computed(() => {
+  const raw = route.query.commentId
+  const id = raw ? Number(raw) : null
+  return Number.isFinite(id) ? id : null
+})
+
+const scrollToComment = async (commentId, attempts = 5) => {
+  if (!commentId || attempts <= 0) return
+  await nextTick()
+  const el = document.getElementById(`comment-${commentId}`)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    return
+  }
+  setTimeout(() => scrollToComment(commentId, attempts - 1), 200)
+}
+
+watch(
+  () => activeCommentId.value,
+  async (id) => {
+    if (!id) return
+    if (!comments.value.length) {
+      await loadComments()
+    }
+    scrollToComment(id)
+  }
+)
+
+watch(
+  () => comments.value,
+  (list) => {
+    if (!activeCommentId.value || !list?.length) return
+    scrollToComment(activeCommentId.value)
+  },
+  { deep: true }
+)
 </script>
 
 <template>
@@ -329,7 +376,9 @@ const formatDate = (iso) => {
           <div
             v-for="comment in comments"
             :key="comment.id"
-            class="p-4 border border-gray-200 rounded-lg bg-white"
+            :id="`comment-${comment.id}`"
+            class="p-4 border rounded-lg transition-colors"
+            :class="activeCommentId === comment.id ? 'border-violet-400 bg-violet-50' : 'border-gray-200 bg-white'"
           >
             <div class="flex items-center justify-between mb-1 text-sm text-gray-600">
               <span>{{ comment.username || 'Аноним' }}</span>
