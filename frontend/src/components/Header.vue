@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, X, Search, User, Bell, LogOut } from 'lucide-vue-next'
 import { useSessionStore } from '../stores/session'
+import { useLotsStore } from '../stores/lots'
 
 const props = defineProps({
   currentPage: { type: String, required: false },
@@ -15,10 +16,16 @@ const props = defineProps({
 
 const router = useRouter()
 const session = useSessionStore()
+const lotsStore = useLotsStore()
 const mobileMenuOpen = ref(false)
 const searchQuery = ref('')
+const searchResults = ref([])
+const searchLoading = ref(false)
+const searchOpen = ref(false)
+const searchBoxRef = ref(null)
 const profileMenuOpen = ref(false)
 const profileMenuRef = ref(null)
+let searchTimer = null
 
 const navItems = computed(() => {
   const base = [{ id: 'home', label: 'Главная' }]
@@ -65,6 +72,9 @@ const handleClickOutside = (event) => {
   if (!profileMenuRef.value.contains(event.target)) {
     profileMenuOpen.value = false
   }
+  if (searchBoxRef.value && !searchBoxRef.value.contains(event.target)) {
+    searchOpen.value = false
+  }
 }
 
 onMounted(() => {
@@ -73,7 +83,63 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
 })
+
+const normalize = (value) => (value || '').toString().toLowerCase()
+
+const runSearch = async (term) => {
+  const query = normalize(term).trim()
+  if (!query) {
+    searchResults.value = []
+    searchOpen.value = false
+    return
+  }
+
+  searchLoading.value = true
+  if (!lotsStore.state.catalog.length) {
+    await lotsStore.loadCatalog().catch(() => {})
+  }
+
+  const results = lotsStore.state.catalog.filter((lot) => {
+    const title = normalize(lot.title)
+    const author = normalize(lot.authorName)
+    const description = normalize(lot.description)
+    const tags = (lot.tags || []).map((t) => normalize(t)).join(' ')
+    return (
+      title.includes(query) ||
+      author.includes(query) ||
+      description.includes(query) ||
+      tags.includes(query)
+    )
+  })
+
+  searchResults.value = results.slice(0, 6)
+  searchOpen.value = true
+  searchLoading.value = false
+}
+
+watch(searchQuery, (value) => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  searchTimer = setTimeout(() => runSearch(value), 250)
+})
+
+const handleSearchSelect = (lotId) => {
+  searchOpen.value = false
+  searchQuery.value = ''
+  if (lotId) {
+    router.push({ name: 'lot-detail', params: { id: lotId } })
+  }
+}
+
+const handleSearchSubmit = () => {
+  if (!searchQuery.value.trim()) return
+  searchOpen.value = true
+}
 </script>
 
 <template>
@@ -86,14 +152,32 @@ onBeforeUnmount(() => {
       </button>
 
       <nav class="hidden md:flex items-center gap-6">
-        <div class="relative">
+        <div class="relative" ref="searchBoxRef">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Поиск..."
             class="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 w-64 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            @focus="searchOpen = true"
+            @keydown.enter.prevent="handleSearchSubmit"
           />
+
+          <div
+            v-if="searchOpen && (searchLoading || searchResults.length)"
+            class="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
+          >
+            <div v-if="searchLoading" class="px-4 py-3 text-sm text-gray-600">Ищем...</div>
+            <button
+              v-for="lot in searchResults"
+              :key="lot.id"
+              class="w-full text-left px-4 py-3 hover:bg-violet-50 transition-colors"
+              @click="handleSearchSelect(lot.id)"
+            >
+              <div class="text-sm font-medium text-gray-900">{{ lot.title }}</div>
+              <div class="text-xs text-gray-500">{{ lot.authorName || '—' }}</div>
+            </button>
+          </div>
         </div>
 
         <button
@@ -178,14 +262,32 @@ onBeforeUnmount(() => {
 
     <div v-if="mobileMenuOpen" class="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
       <div class="px-6 py-4">
-        <div class="relative mb-4">
+        <div class="relative mb-4" ref="searchBoxRef">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Поиск..."
             class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400"
+            @focus="searchOpen = true"
+            @keydown.enter.prevent="handleSearchSubmit"
           />
+
+          <div
+            v-if="searchOpen && (searchLoading || searchResults.length)"
+            class="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
+          >
+            <div v-if="searchLoading" class="px-4 py-3 text-sm text-gray-600">Ищем...</div>
+            <button
+              v-for="lot in searchResults"
+              :key="lot.id"
+              class="w-full text-left px-4 py-3 hover:bg-violet-50 transition-colors"
+              @click="() => { handleSearchSelect(lot.id); mobileMenuOpen = false }"
+            >
+              <div class="text-sm font-medium text-gray-900">{{ lot.title }}</div>
+              <div class="text-xs text-gray-500">{{ lot.authorName || '—' }}</div>
+            </button>
+          </div>
         </div>
 
         <div class="flex flex-col gap-3">
