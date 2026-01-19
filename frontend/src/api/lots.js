@@ -20,6 +20,10 @@ export async function buyLot(id) {
   return httpClient.post(`/api/lots/${id}/buy`)
 }
 
+export async function deleteLot(id) {
+  return httpClient.delete(`/api/lots/${id}`)
+}
+
 export async function downloadLotAsset(id) {
   const token = getAuthToken()
   const response = await fetch(`${API_BASE}/api/lots/${id}/download`, {

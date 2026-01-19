@@ -203,6 +203,14 @@ public class LotController {
                 .body(data);
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal JwtUserDetails details) {
+        var user = userAccountService.findById(details.userId()).orElseThrow();
+        lotService.deleteLot(id, user);
+        return ResponseEntity.noContent().build();
+    }
+
     private byte[] watermarkImage(byte[] source, String watermarkText) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(source));

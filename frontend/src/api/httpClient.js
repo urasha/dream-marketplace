@@ -74,4 +74,5 @@ export const httpClient = {
   post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
   patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
+  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
 }
