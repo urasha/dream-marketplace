@@ -14,7 +14,7 @@ public final class VisualizationMapper {
                 v.getId(),
                 v.getPrompt(),
                 v.getGenerator(),
-                v.getFilePath(),
+            "/api/visualizations/" + v.getId() + "/preview",
                 v.getMime(),
                 v.getWidth(),
                 v.getHeight(),

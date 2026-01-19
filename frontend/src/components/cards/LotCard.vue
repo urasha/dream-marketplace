@@ -1,5 +1,7 @@
 <script setup>
+import { computed } from 'vue'
 import { Star } from 'lucide-vue-next'
+import { API_BASE } from '../../api/httpClient'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -15,6 +17,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click'])
+
+const resolvedImageUrl = computed(() => {
+  if (!props.imageUrl) return ''
+  if (props.imageUrl.startsWith('http://') || props.imageUrl.startsWith('https://') || props.imageUrl.startsWith('data:')) {
+    return props.imageUrl
+  }
+  if (props.imageUrl.startsWith('/')) {
+    return `${API_BASE}${props.imageUrl}`
+  }
+  return props.imageUrl
+})
 </script>
 
 <template>
@@ -26,8 +39,8 @@ const emit = defineEmits(['click'])
   >
     <div class="w-full aspect-[4/3] overflow-hidden rounded-t-xl bg-gray-100">
       <img
-        v-if="imageUrl"
-        :src="imageUrl"
+        v-if="resolvedImageUrl"
+        :src="resolvedImageUrl"
         alt="lot preview"
         class="w-full h-full object-cover object-center block"
         loading="lazy"

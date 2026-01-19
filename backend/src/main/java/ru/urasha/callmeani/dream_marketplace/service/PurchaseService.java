@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import ru.urasha.callmeani.dream_marketplace.dto.PurchaseItemDto;
 import ru.urasha.callmeani.dream_marketplace.dto.TransactionDto;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Lot;
 import ru.urasha.callmeani.dream_marketplace.models.entities.Transaction;
@@ -14,6 +15,7 @@ import ru.urasha.callmeani.dream_marketplace.repositories.TransactionRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.UserAccountRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class PurchaseService {
@@ -73,5 +75,28 @@ public class PurchaseService {
         lotRepository.save(lot);
 
         return new TransactionDto(tx.getId(), lot.getId(), buyer.getId(), seller.getId(), price, tx.getFee(), tx.getTransactionDate());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PurchaseItemDto> listPurchases(Long buyerId) {
+        return transactionRepository.findByBuyer_IdOrderByTransactionDateDesc(buyerId).stream()
+                .map(tx -> {
+                    var lot = tx.getLot();
+                    var dream = lot != null ? lot.getDreamRecord() : null;
+                    var author = dream != null ? dream.getUser() : null;
+                    var visualization = dream != null ? dream.getVisualization() : null;
+                    return new PurchaseItemDto(
+                            tx.getId(),
+                            lot != null ? lot.getId() : null,
+                            lot != null ? lot.getTitle() : null,
+                            lot != null ? lot.getDescription() : null,
+                            tx.getAmount(),
+                            tx.getTransactionDate(),
+                            visualization != null && lot != null ? "/api/lots/" + lot.getId() + "/preview" : null,
+                            author != null ? author.getId() : null,
+                            author != null ? author.getUsername() : null
+                    );
+                })
+                .toList();
     }
 }

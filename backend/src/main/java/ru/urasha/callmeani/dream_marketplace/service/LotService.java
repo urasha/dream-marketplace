@@ -16,6 +16,7 @@ import ru.urasha.callmeani.dream_marketplace.repositories.CategoryRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.DreamRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.TagRepository;
+import ru.urasha.callmeani.dream_marketplace.repositories.TransactionRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.VisualizationRepository;
 
 import java.math.BigDecimal;
@@ -31,17 +32,20 @@ public class LotService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final DreamRepository dreamRepository;
+    private final TransactionRepository transactionRepository;
 
     public LotService(LotRepository lotRepository,
                       VisualizationRepository visualizationRepository,
                       CategoryRepository categoryRepository,
                       TagRepository tagRepository,
-                      DreamRepository dreamRepository) {
+                      DreamRepository dreamRepository,
+                      TransactionRepository transactionRepository) {
         this.lotRepository = lotRepository;
         this.visualizationRepository = visualizationRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.dreamRepository = dreamRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Transactional
@@ -129,6 +133,12 @@ public class LotService {
     }
 
     @Transactional(readOnly = true)
+    public Lot getLotForPreview(Long id) {
+        return lotRepository.findDetailedById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lot not found"));
+    }
+
+    @Transactional(readOnly = true)
         public Lot getLotForPublic(Long id, UserAccount currentUser) {
         Lot lot = lotRepository.findDetailedById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lot not found"));
@@ -138,7 +148,10 @@ public class LotService {
             && lot.getDreamRecord().getUser() != null
             && lot.getDreamRecord().getUser().getId().equals(currentUser.getId());
 
-        if (lot.getStatus() != LotStatus.OPEN && !isOwner) {
+        boolean isBuyer = currentUser != null
+            && transactionRepository.existsByLot_IdAndBuyer_Id(lot.getId(), currentUser.getId());
+
+        if (lot.getStatus() != LotStatus.OPEN && !isOwner && !isBuyer) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lot not available");
         }
         return lot;

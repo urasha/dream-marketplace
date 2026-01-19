@@ -109,6 +109,17 @@ public class DreamService {
         return vis;
     }
 
+    @Transactional(readOnly = true)
+    public Visualization getVisualizationForOwner(Long visualizationId, UserAccount user) {
+        Visualization vis = visualizationRepository.findById(visualizationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visualization not found"));
+        DreamRecord dream = vis.getDreamRecord();
+        if (dream == null || !dream.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        return vis;
+    }
+
     @Transactional
     public Visualization attachReadyVisualization(Long dreamId, UserAccount user, VisualizationUploadRequest request) {
         DreamRecord dream = dreamRepository.findById(dreamId)

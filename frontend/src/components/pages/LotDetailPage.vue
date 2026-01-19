@@ -3,7 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Download } from 'lucide-vue-next'
 import { useLotsStore } from '../../stores/lots'
-import { addLotComment, fetchLotComments, fetchLotRating, setLotRating } from '../../api/lots'
+import { useSessionStore } from '../../stores/session'
+import { addLotComment, fetchLotComments, fetchLotRating, setLotRating, downloadLotAsset } from '../../api/lots'
+import { API_BASE } from '../../api/httpClient'
 
 const props = defineProps({
   lotId: { type: Number, default: null },
@@ -12,6 +14,7 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const lotsStore = useLotsStore()
+const session = useSessionStore()
 
 const isPurchased = ref(false)
 const loading = computed(() => lotsStore.state.loading)
@@ -21,6 +24,7 @@ const comments = ref([])
 const commentsLoading = ref(false)
 const commentInput = ref('')
 const commentError = ref('')
+const downloadError = ref('')
 
 const rating = reactive({
   average: 0,
@@ -38,7 +42,32 @@ const backTarget = computed(() => {
   if (route.query.from === 'profile-lots') {
     return { name: 'profile', query: { tab: 'lots' } }
   }
+  if (route.query.from === 'profile-purchases') {
+    return { name: 'profile', query: { tab: 'purchases' } }
+  }
   return { name: 'home' }
+})
+
+const isOwner = computed(() => {
+  const userId = session.state.profile?.id
+  return Boolean(userId && lot.value && lot.value.authorId === userId)
+})
+
+const isAvailableForPurchase = computed(() => {
+  return Boolean(lot.value && lot.value.status === 'OPEN')
+})
+
+const canDownload = computed(() => Boolean(lot.value && lot.value.status === 'SOLD' && !isOwner.value))
+const resolvedPreviewUrl = computed(() => {
+  const url = lot.value?.visualizationUrl
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
 })
 
 onMounted(() => {
@@ -128,6 +157,16 @@ const submitRating = async () => {
   }
 }
 
+const handleDownload = async () => {
+  if (!lot.value) return
+  downloadError.value = ''
+  try {
+    await downloadLotAsset(lot.value.id)
+  } catch (e) {
+    downloadError.value = 'Не удалось скачать файл'
+  }
+}
+
 const formatDate = (iso) => {
   if (!iso) return ''
   const d = new Date(iso)
@@ -151,8 +190,8 @@ const formatDate = (iso) => {
         <div>
           <div class="w-full aspect-[4/3] bg-gray-100 border-2 border-gray-300 flex items-center justify-center mb-4 overflow-hidden">
             <img
-              v-if="lot.visualizationUrl"
-              :src="lot.visualizationUrl"
+              v-if="resolvedPreviewUrl"
+              :src="resolvedPreviewUrl"
               alt="Визуализация"
               class="w-full h-full object-cover block"
             />
@@ -201,12 +240,28 @@ const formatDate = (iso) => {
             </span>
           </div>
 
+          <div v-if="isOwner" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
+            Это ваш лот — купить его нельзя.
+          </div>
           <button
+            v-if="canDownload"
+            @click="handleDownload"
+            class="w-full py-4 rounded-lg transition-colors shadow-sm bg-black text-white hover:bg-gray-800"
+          >
+            Скачать
+          </button>
+          <button
+            v-else-if="isAvailableForPurchase && !isOwner"
             @click="router.push({ name: 'purchase', params: { id: lot.id } })"
-            class="w-full py-4 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors shadow-sm"
+            class="w-full py-4 rounded-lg transition-colors shadow-sm bg-violet-600 text-white hover:bg-violet-700"
           >
             Купить
           </button>
+
+          <div v-if="canDownload" class="mt-3 text-sm text-green-700">
+            Вы владеете этим лотом — файл доступен для скачивания.
+          </div>
+          <div v-if="downloadError" class="mt-2 text-sm text-red-600">{{ downloadError }}</div>
         </div>
       </div>
 
@@ -274,23 +329,6 @@ const formatDate = (iso) => {
         </div>
       </div>
 
-      <div v-if="isPurchased" class="p-8 bg-green-50 border-2 border-green-600 mb-8">
-        <h2 class="mb-4">Вы владеете этим лотом</h2>
-        <p class="text-gray-700 mb-6">Теперь вы можете скачать файл.</p>
-
-        <div class="p-6 bg-white border-2 border-gray-300 mb-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="mb-1">{{ lot.title }}.asset</div>
-              <div class="text-gray-600">Файл доступен для скачивания</div>
-            </div>
-            <button class="px-6 py-3 bg-black text-white hover:bg-gray-800 transition-colors flex items-center gap-2">
-              <Download class="w-5 h-5" />
-              Скачать
-            </button>
-          </div>
-        </div>
-      </div>
     </template>
 
     <p v-else>Лот не найден</p>
