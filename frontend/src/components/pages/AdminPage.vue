@@ -1,12 +1,20 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { CheckCircle, XCircle } from 'lucide-vue-next'
-import { moderationQueue, moderationLog } from '../../data/mockData'
+import { fetchModerationQueue, fetchModerationLog, approveLot, rejectLot } from '../../api/moderation'
+import { API_BASE } from '../../api/httpClient'
 
 const activeTab = ref('queue')
 const selectedLot = ref(null)
 const showRejectModal = ref(false)
 const rejectReason = ref('')
+const queue = ref([])
+const log = ref([])
+const loadingQueue = ref(false)
+const loadingLog = ref(false)
+const error = ref('')
+
+const queueCount = computed(() => queue.value.length)
 
 const openRejectModal = (lotId) => {
   selectedLot.value = lotId
@@ -19,21 +27,82 @@ const closeRejectModal = () => {
   selectedLot.value = null
 }
 
-const handleApprove = (lotId) => {
-  alert(`Лот ${lotId} одобрен`)
-  selectedLot.value = null
+const formatDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ru-RU')
 }
 
-const handleReject = (lotId) => {
+const resolvePreviewUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
+}
+
+const loadQueue = async () => {
+  loadingQueue.value = true
+  error.value = ''
+  try {
+    queue.value = await fetchModerationQueue()
+  } catch (e) {
+    queue.value = []
+    error.value = e?.data?.message || 'Не удалось загрузить очередь модерации'
+  } finally {
+    loadingQueue.value = false
+  }
+}
+
+const loadLog = async () => {
+  loadingLog.value = true
+  error.value = ''
+  try {
+    log.value = await fetchModerationLog()
+  } catch (e) {
+    log.value = []
+    error.value = e?.data?.message || 'Не удалось загрузить историю модерации'
+  } finally {
+    loadingLog.value = false
+  }
+}
+
+const handleApprove = async (lotId) => {
+  try {
+    await approveLot(lotId)
+    await loadQueue()
+    await loadLog()
+  } catch (e) {
+    error.value = e?.data?.message || 'Не удалось одобрить лот'
+  } finally {
+    selectedLot.value = null
+  }
+}
+
+const handleReject = async (lotId) => {
   if (!rejectReason.value) {
     alert('Укажите причину отклонения')
     return
   }
-  alert(`Лот ${lotId} отклонён. Причина: ${rejectReason.value}`)
-  showRejectModal.value = false
-  rejectReason.value = ''
-  selectedLot.value = null
+  try {
+    await rejectLot(lotId, rejectReason.value)
+    await loadQueue()
+    await loadLog()
+    showRejectModal.value = false
+    rejectReason.value = ''
+    selectedLot.value = null
+  } catch (e) {
+    error.value = e?.data?.message || 'Не удалось отклонить лот'
+  }
 }
+
+onMounted(async () => {
+  await loadQueue()
+  await loadLog()
+})
 </script>
 
 <template>
@@ -46,7 +115,7 @@ const handleReject = (lotId) => {
         class="px-6 py-3 transition-colors relative"
         :class="activeTab === 'queue' ? 'text-violet-600' : 'text-gray-600 hover:text-gray-900'"
       >
-        Очередь модерации ({{ moderationQueue.length }})
+        Очередь модерации ({{ queueCount }})
         <div v-if="activeTab === 'queue'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />
       </button>
       <button
@@ -60,26 +129,40 @@ const handleReject = (lotId) => {
     </div>
 
     <div v-if="activeTab === 'queue'" class="space-y-6">
-      <div v-for="item in moderationQueue" :key="item.id" class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div v-if="loadingQueue" class="text-gray-600">Загружаем очередь...</div>
+      <div v-else-if="error" class="text-red-600">{{ error }}</div>
+      <div v-else-if="!queue.length" class="p-12 text-center bg-white border border-gray-200 rounded-xl">
+        <p class="text-gray-600">Очередь модерации пуста</p>
+      </div>
+      <div v-else v-for="item in queue" :key="item.id" class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
             <div class="w-full aspect-[4/3] bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100 border border-gray-200 rounded-lg flex items-center justify-center mb-3">
-              <div class="text-violet-400">400×300</div>
+              <img
+                v-if="item.previewUrl"
+                :src="resolvePreviewUrl(item.previewUrl)"
+                alt="preview"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <div v-else class="text-violet-400">400×300</div>
             </div>
             <div class="text-gray-600">ID: {{ item.id }}</div>
           </div>
 
           <div class="lg:col-span-2">
             <h2 class="mb-3">{{ item.title }}</h2>
+            <p v-if="item.description" class="mb-4 text-gray-600">
+              {{ item.description }}
+            </p>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <div class="text-gray-600 mb-1">Автор</div>
-                <div>{{ item.author }}</div>
+                <div>{{ item.authorName || '—' }}</div>
               </div>
               <div>
                 <div class="text-gray-600 mb-1">Дата подачи</div>
-                <div>{{ item.submittedDate }}</div>
+                <div>{{ formatDate(item.submittedAt) }}</div>
               </div>
               <div>
                 <div class="text-gray-600 mb-1">Цена</div>
@@ -114,14 +197,15 @@ const handleReject = (lotId) => {
           </div>
         </div>
       </div>
-
-      <div v-if="!moderationQueue.length" class="p-12 text-center bg-white border border-gray-200 rounded-xl">
-        <p class="text-gray-600">Очередь модерации пуста</p>
-      </div>
     </div>
 
     <div v-else class="space-y-4">
-      <div v-for="entry in moderationLog" :key="entry.id" class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div v-if="loadingLog" class="text-gray-600">Загружаем историю...</div>
+      <div v-else-if="error" class="text-red-600">{{ error }}</div>
+      <div v-else-if="!log.length" class="p-12 text-center bg-white border border-gray-200 rounded-xl">
+        <p class="text-gray-600">История пуста</p>
+      </div>
+      <div v-else v-for="entry in log" :key="entry.id" class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
         <div class="flex items-start justify-between mb-3">
           <div>
             <h3 class="mb-1">{{ entry.lotTitle }}</h3>
@@ -138,11 +222,11 @@ const handleReject = (lotId) => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
           <div>
             <div class="text-gray-600 mb-1">Модератор</div>
-            <div>{{ entry.moderator }}</div>
+            <div>{{ entry.moderatorName || '—' }}</div>
           </div>
           <div>
             <div class="text-gray-600 mb-1">Дата</div>
-            <div>{{ entry.date }}</div>
+            <div>{{ formatDate(entry.createdAt) }}</div>
           </div>
         </div>
 

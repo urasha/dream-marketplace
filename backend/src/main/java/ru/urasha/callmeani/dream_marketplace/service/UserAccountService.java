@@ -24,14 +24,14 @@ public class UserAccountService {
     public UserAccount findOrCreateFromYandex(YandexProfile profile) {
         Optional<UserAccount> existingByYandex = userRepository.findByYandexId(profile.id());
         if (existingByYandex.isPresent()) {
-            return existingByYandex.get();
+            return ensureAdminBootstrap(existingByYandex.get());
         }
 
         Optional<UserAccount> existingByEmail = userRepository.findByEmail(profile.email());
         if (existingByEmail.isPresent()) {
             UserAccount user = existingByEmail.get();
             user.setYandexId(profile.id());
-            return user;
+            return ensureAdminBootstrap(userRepository.save(user));
         }
 
         UserAccount user = new UserAccount();
@@ -39,7 +39,15 @@ public class UserAccountService {
         user.setUsername(profile.displayName());
         user.setEmail(profile.email());
         user.setRole(UserRole.USER);
-        return userRepository.save(user);
+        return ensureAdminBootstrap(userRepository.save(user));
+    }
+
+    private UserAccount ensureAdminBootstrap(UserAccount user) {
+        if (!userRepository.existsByRole(UserRole.ADMIN)) {
+            user.setRole(UserRole.ADMIN);
+            return userRepository.save(user);
+        }
+        return user;
     }
 
     public Optional<UserAccount> findById(Long id) {
