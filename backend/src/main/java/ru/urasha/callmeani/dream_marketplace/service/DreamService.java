@@ -96,6 +96,56 @@ public class DreamService {
     }
 
     @Transactional
+    public DreamRecord update(Long dreamId, UserAccount user, String title, String content, Privacy privacy, Long categoryId, List<Long> tagIds, List<String> tagNames) {
+        DreamRecord dream = dreamRepository.findById(dreamId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
+        if (!dream.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        dream.setTitle(title);
+        dream.setContent(content);
+        dream.setPrivacy(privacy);
+
+        if (categoryId != null) {
+            Category category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+            dream.setCategory(category);
+        } else {
+            dream.setCategory(null);
+        }
+
+        Set<Tag> resultingTags = new HashSet<>();
+
+        if (tagIds != null && !tagIds.isEmpty()) {
+            List<Tag> tags = tagRepository.findByIdIn(tagIds);
+            resultingTags.addAll(tags);
+        }
+
+        if (tagNames != null && !tagNames.isEmpty()) {
+            for (String rawName : tagNames) {
+                if (rawName == null) {
+                    continue;
+                }
+                String name = rawName.trim();
+                if (name.isEmpty()) {
+                    continue;
+                }
+                Tag tag = tagRepository.findByNameIgnoreCase(name)
+                        .orElseGet(() -> {
+                            Tag t = new Tag();
+                            t.setName(name);
+                            return tagRepository.save(t);
+                        });
+                resultingTags.add(tag);
+            }
+        }
+
+        dream.setTags(resultingTags);
+        return dreamRepository.save(dream);
+    }
+
+    @Transactional
     public Visualization requestVisualization(Long dreamId, UserAccount user) {
         DreamRecord dream = dreamRepository.findById(dreamId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));

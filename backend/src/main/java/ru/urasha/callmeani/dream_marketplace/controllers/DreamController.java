@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +21,7 @@ import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
 import ru.urasha.callmeani.dream_marketplace.service.DreamService;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamCreateRequest;
 import ru.urasha.callmeani.dream_marketplace.dto.DreamDto;
+import ru.urasha.callmeani.dream_marketplace.dto.DreamUpdateRequest;
 import ru.urasha.callmeani.dream_marketplace.dto.VisualizationDto;
 import ru.urasha.callmeani.dream_marketplace.dto.VisualizationUploadRequest;
 import ru.urasha.callmeani.dream_marketplace.mappers.DreamMapper;
@@ -54,6 +56,26 @@ public class DreamController {
             request.categoryId(),
             request.tagIds(),
             request.tagNames()
+        );
+        boolean hasLot = lotRepository.existsByDreamRecordId(dream.getId());
+        return ResponseEntity.ok(DreamMapper.toDto(dream, hasLot));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/{id}")
+    public ResponseEntity<DreamDto> update(@PathVariable Long id,
+                                           @Valid @RequestBody DreamUpdateRequest request,
+                                           @AuthenticationPrincipal JwtUserDetails details) {
+        UserAccount user = requireUser(details);
+        var dream = dreamService.update(
+                id,
+                user,
+                request.title(),
+                request.content(),
+                request.privacy(),
+                request.categoryId(),
+                request.tagIds(),
+                request.tagNames()
         );
         boolean hasLot = lotRepository.existsByDreamRecordId(dream.getId());
         return ResponseEntity.ok(DreamMapper.toDto(dream, hasLot));

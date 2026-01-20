@@ -8,6 +8,10 @@ export async function createDream(payload) {
   return httpClient.post('/api/dreams', payload)
 }
 
+export async function updateDream(id, payload) {
+  return httpClient.put(`/api/dreams/${id}`, payload)
+}
+
 export async function requestVisualization(dreamId) {
   return httpClient.post(`/api/dreams/${dreamId}/visualize`)
 }

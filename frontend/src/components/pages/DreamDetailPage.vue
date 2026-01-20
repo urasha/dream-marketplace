@@ -287,6 +287,11 @@ const handleDeleteDream = async () => {
   }
 }
 
+const handleEditDream = () => {
+  if (!dream.value) return
+  router.push({ name: 'create-dream', query: { dreamId: dream.value.id } })
+}
+
 const checkGenerationStatus = async () => {
   if (!genTaskId.value) return
   if (pollCount.value >= maxPolls) {
@@ -359,6 +364,12 @@ onMounted(loadDream)
         </div>
 
         <div class="flex items-center gap-3 mb-4">
+          <button
+            @click="handleEditDream"
+            class="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            Редактировать сон
+          </button>
           <button
             v-if="!dream.hasLot"
             @click="handleDeleteDream"

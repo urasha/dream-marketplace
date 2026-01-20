@@ -1,12 +1,13 @@
 <script setup>
-import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, watch, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-vue-next'
 import { useDreamsStore } from '../../stores/dreams'
-import { searchTags } from '../../api/tags'
+import { searchTags, fetchTagsByIds } from '../../api/tags'
 import { fetchCategories } from '../../api/categories'
 
 const router = useRouter()
+const route = useRoute()
 
 const title = ref('')
 const content = ref('')
@@ -23,12 +24,20 @@ const tagsState = reactive({
   selected: [],
 })
 
+const editingDreamId = computed(() => {
+  const raw = route.query.dreamId
+  const parsed = raw ? Number(raw) : null
+  return Number.isFinite(parsed) ? parsed : null
+})
+const isEditing = computed(() => Boolean(editingDreamId.value))
+
 let tagSearchTimer = null
 
 const dreamsStore = useDreamsStore()
 
 onMounted(async () => {
   await loadCategories()
+  await loadDreamForEdit()
 })
 
 onUnmounted(() => {
@@ -70,6 +79,29 @@ const loadCategories = async () => {
     }
   } catch (e) {
     categories.value = []
+  }
+}
+
+const loadDreamForEdit = async () => {
+  if (!isEditing.value) return
+  try {
+    if (!dreamsStore.state.items.length) {
+      await dreamsStore.loadDreams()
+    }
+    const dream = dreamsStore.state.items.find((item) => item.id === editingDreamId.value)
+    if (!dream) return
+    title.value = dream.title || ''
+    content.value = dream.content || ''
+    isPrivate.value = dream.privacy === 'PRIVATE'
+    selectedCategoryId.value = dream.categoryId || selectedCategoryId.value
+    if (Array.isArray(dream.tagIds) && dream.tagIds.length) {
+      const tags = await fetchTagsByIds(dream.tagIds)
+      tagsState.selected = tags.map((tag) => ({ id: tag.id, name: tag.name }))
+    } else {
+      tagsState.selected = []
+    }
+  } catch (e) {
+    // ignore prefill errors
   }
 }
 
@@ -119,12 +151,14 @@ const handleSubmit = async () => {
       tagIds: tagsState.selected.filter((t) => t.id).map((t) => t.id),
       tagNames: tagsState.selected.filter((t) => !t.id).map((t) => t.name),
     }
-    const created = await dreamsStore.createDream(payload)
+    const saved = isEditing.value
+      ? await dreamsStore.updateDream(editingDreamId.value, payload)
+      : await dreamsStore.createDream(payload)
     status.value = 'success'
-    router.push({ name: 'dream-detail', params: { id: created.id } })
+    router.push({ name: 'dream-detail', params: { id: saved.id } })
   } catch (err) {
     status.value = 'error'
-    errorMessage.value = err?.data?.message || 'Не удалось создать сон'
+    errorMessage.value = err?.data?.message || (isEditing.value ? 'Не удалось сохранить сон' : 'Не удалось создать сон')
   }
 }
 
@@ -147,7 +181,7 @@ const goBack = () => {
       Назад к профилю
     </button>
 
-    <h1 class="mb-8 page-title">Создать запись сна</h1>
+    <h1 class="mb-8 page-title">{{ isEditing ? 'Редактировать запись сна' : 'Создать запись сна' }}</h1>
 
     <div v-if="status === 'error'" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
       <AlertCircle class="w-6 h-6 flex-shrink-0 text-red-600" />
@@ -160,8 +194,8 @@ const goBack = () => {
     <div v-if="status === 'success'" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
       <CheckCircle class="w-6 h-6 flex-shrink-0 text-green-600" />
       <div>
-        <h3 class="text-green-900">Запись сохранена</h3>
-        <p class="text-green-700">Ваш сон успешно добавлен в коллекцию</p>
+        <h3 class="text-green-900">{{ isEditing ? 'Изменения сохранены' : 'Запись сохранена' }}</h3>
+        <p class="text-green-700">{{ isEditing ? 'Ваш сон успешно обновлён' : 'Ваш сон успешно добавлен в коллекцию' }}</p>
       </div>
     </div>
 
@@ -266,7 +300,7 @@ const goBack = () => {
           class="px-8 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
           :disabled="status === 'saving'"
         >
-          {{ status === 'saving' ? 'Сохраняем...' : 'Сохранить запись' }}
+          {{ status === 'saving' ? 'Сохраняем...' : (isEditing ? 'Сохранить изменения' : 'Сохранить запись') }}
         </button>
         <button
           @click="router.push({ name: 'profile' })"
