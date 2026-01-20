@@ -7,6 +7,7 @@ const CreateLotPage = () => import('../components/pages/CreateLotPage.vue')
 const LotDetailPage = () => import('../components/pages/LotDetailPage.vue')
 const PurchaseFlow = () => import('../components/pages/PurchaseFlow.vue')
 const ProfilePage = () => import('../components/pages/ProfilePage.vue')
+const AuthorProfilePage = () => import('../components/pages/AuthorProfilePage.vue')
 const NotificationsPage = () => import('../components/pages/NotificationsPage.vue')
 const AdminPage = () => import('../components/pages/AdminPage.vue')
 const WalletPage = () => import('../components/pages/WalletPage.vue')
@@ -29,6 +30,7 @@ export const router = createRouter({
     { path: '/lots/:id', name: 'lot-detail', component: LotDetailPage, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/purchase/:id', name: 'purchase', component: PurchaseFlow, props: (route) => ({ lotId: Number(route.params.id) || null }) },
     { path: '/profile', name: 'profile', component: ProfilePage },
+    { path: '/users/:id', name: 'author-profile', component: AuthorProfilePage },
     { path: '/wallet', name: 'wallet', component: WalletPage },
     { path: '/payments/success', redirect: { name: 'wallet' } },
     { path: '/payments/fail', redirect: { name: 'wallet' } },
