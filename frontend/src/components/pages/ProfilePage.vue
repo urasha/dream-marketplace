@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { User, Plus } from 'lucide-vue-next'
 import DreamCard from '../cards/DreamCard.vue'
@@ -22,11 +22,16 @@ const dreamsStore = useDreamsStore()
 const lotsStore = useLotsStore()
 
 const activeTab = ref(['lots', 'purchases', 'dreams'].includes(route.query.tab) ? route.query.tab : 'dreams')
+const tabsRef = ref(null)
 const updateStatus = ref('idle')
 const updateError = ref('')
 const avatarUploading = ref(false)
 const avatarError = ref('')
 const avatarInputRef = ref(null)
+const lotPickerOpen = ref(false)
+const lotPickerLoading = ref(false)
+const lotPickerError = ref('')
+const lotCandidates = ref([])
 
 const tabs = [
   { id: 'dreams', label: 'Мои сны' },
@@ -52,6 +57,9 @@ const dreamsLoading = computed(() => dreamsStore.state.loading)
 const profileLoading = computed(() => session.state.loading)
 const myLots = computed(() => lotsStore.state.mine)
 const purchasesCount = computed(() => purchases.value.length)
+const lotsTotal = computed(() => myLots.value.length)
+const lotsPending = computed(() => myLots.value.filter((lot) => lot.status === 'PENDING').length)
+const lotsSold = computed(() => myLots.value.filter((lot) => lot.status === 'SOLD').length)
 
 const lotStatusLabels = {
   OPEN: 'Открыт',
@@ -67,7 +75,16 @@ const lotStatusClass = {
   CLOSED: 'bg-gray-200 text-gray-700',
 }
 
+const visualizationStatusLabels = {
+  PENDING: 'В очереди',
+  PROCESSING: 'В процессе',
+  READY: 'Готово',
+  ACCEPTED: 'Принято',
+  FAILED: 'Ошибка',
+}
+
 const formatLotStatus = (status) => lotStatusLabels[status] || status
+const formatVisualizationStatus = (status) => visualizationStatusLabels[status] || status
 
 const canDeleteLot = (lot) => lot && lot.status !== 'SOLD'
 
@@ -140,6 +157,47 @@ const dreamCards = computed(() =>
   }))
 )
 
+const openLotPicker = async () => {
+  lotPickerOpen.value = true
+  await loadLotCandidates()
+}
+
+const closeLotPicker = () => {
+  lotPickerOpen.value = false
+  lotPickerError.value = ''
+}
+
+const loadLotCandidates = async () => {
+  lotPickerLoading.value = true
+  lotPickerError.value = ''
+  try {
+    if (!dreamsStore.state.items.length) {
+      await dreamsStore.loadDreams()
+    }
+    const dreamsWithoutLot = dreamsStore.state.items.filter((dream) => !dream.hasLot)
+    const grouped = await Promise.all(
+      dreamsWithoutLot.map(async (dream) => {
+        const visuals = await dreamsStore.loadVisualizations(dream.id).catch(() => [])
+        const ready = Array.isArray(visuals)
+          ? visuals.filter((v) => v.status === 'READY' || v.status === 'ACCEPTED')
+          : []
+        return { dream, visualizations: ready }
+      })
+    )
+    lotCandidates.value = grouped.filter((item) => item.visualizations.length)
+  } catch (err) {
+    lotPickerError.value = err?.data?.message || 'Не удалось загрузить визуализации'
+    lotCandidates.value = []
+  } finally {
+    lotPickerLoading.value = false
+  }
+}
+
+const handleSelectVisualization = (dreamId, visualizationId) => {
+  closeLotPicker()
+  router.push({ name: 'create-lot', query: { dreamId, visualizationId } })
+}
+
 const loadPurchases = async () => {
   purchasesLoading.value = true
   purchasesError.value = ''
@@ -153,6 +211,13 @@ const loadPurchases = async () => {
   }
 }
 
+
+const scrollToTabs = () => {
+  if (tabsRef.value) {
+    tabsRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
 onMounted(async () => {
   if (!session.state.profile) {
     await session.loadProfile().catch(() => {})
@@ -162,7 +227,20 @@ onMounted(async () => {
   await dreamsStore.loadDreams().catch(() => {})
   await lotsStore.loadMyLots().catch(() => {})
   await loadPurchases()
+  if (['lots', 'purchases', 'dreams'].includes(route.query.tab)) {
+    setTimeout(scrollToTabs, 200)
+  }
 })
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (['lots', 'purchases', 'dreams'].includes(tab)) {
+      activeTab.value = tab
+      setTimeout(scrollToTabs, 100)
+    }
+  }
+)
 
 const handleUpdateProfile = async () => {
   updateStatus.value = 'idle'
@@ -184,6 +262,11 @@ const handleUpdateProfile = async () => {
     updateStatus.value = 'error'
     updateError.value = err?.data?.message || 'Не удалось обновить профиль'
   }
+}
+
+const setActiveTab = (tabId) => {
+  activeTab.value = tabId
+  router.replace({ query: { ...route.query, tab: tabId } })
 }
 
 const handleDeleteDream = async (dreamId) => {
@@ -338,29 +421,29 @@ const handleLogout = async () => {
       </div>
     </div>
 
-    <div class="mb-6">
-      <div class="flex gap-2 border-b border-gray-200">
+    <div class="mb-8" ref="tabsRef">
+      <div class="flex flex-wrap gap-3">
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          @click="activeTab = tab.id"
-          class="px-6 py-3 transition-colors relative"
-          :class="activeTab === tab.id ? 'text-violet-600' : 'text-gray-600 hover:text-gray-900'"
+          @click="setActiveTab(tab.id)"
+          class="px-5 py-2 rounded-full text-sm font-semibold transition-colors"
+          :class="activeTab === tab.id ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
         >
           {{ tab.label }}
-          <div v-if="activeTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600" />
         </button>
       </div>
     </div>
 
     <div v-if="activeTab === 'dreams'">
-      <div class="flex justify-end mb-6">
+      <div class="flex flex-col items-center gap-4 mb-8">
+        <h2 class="text-2xl font-semibold">Мои сны</h2>
         <button
           @click="router.push({ name: 'create-dream' })"
-          class="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+          class="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors shadow-md"
         >
           <Plus class="w-4 h-4" />
-          Создать запись
+          Создать сон
         </button>
       </div>
       <div v-if="deleteDreamError" class="text-red-600 mb-3">{{ deleteDreamError }}</div>
@@ -384,26 +467,51 @@ const handleLogout = async () => {
     </div>
 
     <div v-else-if="activeTab === 'lots'">
+      <div class="flex flex-col items-center gap-4 mb-8">
+        <h2 class="text-2xl font-semibold">Мои лоты</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          <div class="p-4 bg-white border border-gray-200 rounded-xl text-center">
+            <div class="text-gray-600">Всего лотов</div>
+            <div class="text-2xl font-semibold text-violet-600">{{ lotsTotal }}</div>
+          </div>
+          <div class="p-4 bg-white border border-gray-200 rounded-xl text-center">
+            <div class="text-gray-600">На модерации</div>
+            <div class="text-2xl font-semibold text-amber-600">{{ lotsPending }}</div>
+          </div>
+          <div class="p-4 bg-white border border-gray-200 rounded-xl text-center">
+            <div class="text-gray-600">Продано</div>
+            <div class="text-2xl font-semibold text-emerald-600">{{ lotsSold }}</div>
+          </div>
+        </div>
+        <button
+          @click="openLotPicker"
+          class="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors shadow-md"
+        >
+          <Plus class="w-4 h-4" />
+          Создать лот
+        </button>
+      </div>
       <div v-if="lotsStore.state.loading" class="text-gray-600">Загружаем лоты...</div>
       <div v-else-if="myLots.length === 0" class="text-gray-600">Лоты пока не созданы</div>
       <div v-else-if="deleteError" class="text-red-600 mb-3">{{ deleteError }}</div>
-      <div v-else class="space-y-4">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <button
           v-for="lot in myLots"
           :key="lot.id"
-          class="w-full text-left p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+          class="text-left p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
           @click="router.push({ name: 'lot-detail', params: { id: lot.id }, query: { from: 'profile-lots' } })"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex-1">
-              <h3 class="mb-3">{{ lot.title }}</h3>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="mb-2 font-semibold">{{ lot.title }}</h3>
+              <div class="text-sm text-gray-600 mb-3">{{ lot.description || 'Без описания' }}</div>
+              <div class="flex flex-wrap gap-3 text-sm">
                 <div>
-                  <div class="text-gray-600">Цена</div>
-                  <div>{{ lot.price }} ₽</div>
+                  <div class="text-gray-500">Цена</div>
+                  <div class="font-medium text-violet-600">{{ lot.price }} ₽</div>
                 </div>
                 <div>
-                  <div class="text-gray-600">Статус</div>
+                  <div class="text-gray-500">Статус</div>
                   <span
                     class="inline-block px-3 py-1 rounded-full"
                     :class="lotStatusClass[lot.status] || 'bg-gray-100 text-gray-700'"
@@ -412,7 +520,7 @@ const handleLogout = async () => {
                   </span>
                 </div>
                 <div>
-                  <div class="text-gray-600">Дата</div>
+                  <div class="text-gray-500">Дата</div>
                   <div>{{ lot.submittedAt }}</div>
                 </div>
               </div>
@@ -434,6 +542,9 @@ const handleLogout = async () => {
     </div>
 
     <div v-else>
+      <div class="flex flex-col items-center gap-4 mb-8">
+        <h2 class="text-2xl font-semibold">Мои покупки</h2>
+      </div>
       <div v-if="purchasesLoading" class="text-gray-600">Загружаем покупки...</div>
       <div v-else-if="purchasesError" class="text-red-600">{{ purchasesError }}</div>
       <div v-else-if="purchases.length === 0" class="text-gray-600">Покупок пока нет</div>
@@ -474,6 +585,53 @@ const handleLogout = async () => {
             <span class="text-violet-600">Открыть →</span>
           </div>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="lotPickerOpen" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="backdrop-filter: blur(2px);">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative w-full max-w-3xl bg-gradient-to-br from-violet-100 via-white to-indigo-100 border-4 border-violet-400 rounded-3xl shadow-2xl p-0 animate-fadeIn">
+      <div class="flex items-center justify-between px-8 pt-8 pb-4 mb-2">
+        <h3 class="text-2xl font-extrabold text-violet-700 drop-shadow">Выберите визуализацию для лота</h3>
+        <button class="text-2xl text-violet-400 hover:text-violet-700 font-bold px-3 py-1 rounded-full transition-colors bg-white/70 shadow" @click="closeLotPicker">✕</button>
+      </div>
+
+      <div class="px-8 pb-8">
+        <div v-if="lotPickerLoading" class="text-gray-700 text-lg">Загружаем визуализации...</div>
+        <div v-else-if="lotPickerError" class="text-red-600 text-lg">{{ lotPickerError }}</div>
+        <div v-else-if="!lotCandidates.length" class="text-gray-600 text-lg">Нет доступных визуализаций для создания лота.</div>
+
+        <div v-else class="space-y-6 max-h-[60vh] overflow-auto pr-2">
+          <div v-for="item in lotCandidates" :key="item.dream.id" class="border-2 border-violet-200 bg-white/80 rounded-2xl p-4 shadow-md">
+            <div class="mb-3">
+              <div class="text-xs text-gray-500">Сон</div>
+              <div class="font-bold text-violet-700">{{ item.dream.title }}</div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                v-for="viz in item.visualizations"
+                :key="viz.id"
+                class="flex items-center gap-3 p-3 border-2 border-violet-200 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 hover:from-violet-200 hover:to-indigo-100 hover:border-violet-400 hover:scale-[1.03] transition-all shadow"
+                @click="handleSelectVisualization(item.dream.id, viz.id)"
+              >
+                <div class="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-violet-200">
+                  <img
+                    v-if="viz.filePath"
+                    :src="resolvePreviewUrl(viz.filePath)"
+                    alt="viz"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else class="text-xs text-gray-400">Нет превью</span>
+                </div>
+                <div class="text-left">
+                  <div class="text-base font-semibold text-violet-700">Визуализация #{{ viz.id }}</div>
+                  <div class="text-xs text-gray-500">Статус: {{ formatVisualizationStatus(viz.status) }}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Menu, X, Search, User, Bell, LogOut } from 'lucide-vue-next'
 import { useSessionStore } from '../stores/session'
 import { useLotsStore } from '../stores/lots'
@@ -17,6 +17,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 const session = useSessionStore()
 const lotsStore = useLotsStore()
 const mobileMenuOpen = ref(false)
@@ -30,9 +31,18 @@ const profileMenuRef = ref(null)
 let searchTimer = null
 
 const navItems = computed(() => {
-  const base = [{ id: 'home', label: 'Главная' }]
+  const base = [
+    { id: 'home', label: 'Главная', action: () => router.push({ name: 'home' }) },
+  ]
+  if (props.isAuthenticated) {
+    base.push(
+      { id: 'dreams', label: 'Мои сны', action: () => router.push({ name: 'profile', query: { tab: 'dreams' } }) },
+      { id: 'lots', label: 'Мои лоты', action: () => router.push({ name: 'profile', query: { tab: 'lots' } }) },
+      { id: 'purchases', label: 'Мои покупки', action: () => router.push({ name: 'profile', query: { tab: 'purchases' } }) }
+    )
+  }
   if (props.userRole === 'admin') {
-    base.push({ id: 'admin', label: 'Админ' })
+    base.push({ id: 'admin', label: 'Модерация', action: () => router.push({ name: 'admin' }) })
   }
   return base
 })
@@ -49,6 +59,27 @@ const resolvedAvatar = computed(() => {
   return url
 })
 
+const activeNavId = computed(() => {
+  if (route.name === 'profile') {
+    return route.query.tab || 'dreams'
+  }
+  if (route.name === 'admin') return 'admin'
+  if (route.name === 'home') return 'home'
+  return null
+})
+
+const navButtonClass = (item) => {
+  const isActive = activeNavId.value === item.id
+  const base = 'px-2 py-1 rounded-lg text-sm font-medium whitespace-nowrap transition-colors'
+  if (isActive && item.id === 'admin') {
+    return `${base} bg-red-600 text-white`
+  }
+  if (isActive) {
+    return `${base} bg-violet-600 text-white`
+  }
+  return `${base} text-gray-700 hover:bg-gray-100`
+}
+
 const go = (page) => {
   const map = {
     home: () => router.push({ name: 'home' }),
@@ -56,6 +87,9 @@ const go = (page) => {
     notifications: () => router.push({ name: 'notifications' }),
     wallet: () => router.push({ name: 'wallet' }),
     profile: () => router.push({ name: 'profile' }),
+    dreams: () => router.push({ name: 'profile', query: { tab: 'dreams' } }),
+    lots: () => router.push({ name: 'profile', query: { tab: 'lots' } }),
+    purchases: () => router.push({ name: 'profile', query: { tab: 'purchases' } }),
   }
   map[page]?.()
 }
@@ -157,22 +191,23 @@ const handleSearchSubmit = () => {
 </script>
 
 <template>
+
   <header class="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm border-b border-gray-200 z-50">
-    <div class="max-w-[1160px] mx-auto px-6 h-full flex items-center justify-between">
-      <button @click="go('home')" class="hover:opacity-80 transition-opacity">
-        <div class="tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+    <div class="max-w-[1160px] mx-auto px-2 h-full flex items-center justify-between">
+      <button @click="go('home')" class="hover:opacity-80 transition-opacity min-w-[120px] p-0">
+        <div class="tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent text-base">
           Dream Marketplace
         </div>
       </button>
 
-      <nav class="hidden md:flex items-center gap-6">
-        <div class="relative" ref="searchBoxRef">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <nav class="hidden md:flex items-center gap-0.5 flex-nowrap overflow-x-auto min-w-0">
+        <div class="relative min-w-0" ref="searchBoxRef">
+          <Search class="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Поиск..."
-            class="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 w-64 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            :class="'pl-10 pr-2 py-1 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-xs ' + (userRole === 'admin' ? 'w-28' : 'w-36')"
             @focus="searchOpen = true"
             @keydown.enter.prevent="handleSearchSubmit"
           />
@@ -197,64 +232,67 @@ const handleSearchSubmit = () => {
         <button
           v-for="item in navItems"
           :key="item.id"
-          @click="go(item.id)"
-          class="hover:text-violet-600 transition-colors"
-          :class="currentPage === item.id ? 'text-violet-600' : 'text-gray-700'"
+          @click="item.action()"
+          :class="navButtonClass(item) + ' text-xs px-2 py-1'"
+          style="min-width: 0;"
         >
           {{ item.label }}
         </button>
 
-        <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
+        <div class="flex items-center gap-2 pl-2 border-l border-gray-200 ml-1 min-w-0">
           <button
             @click="go('wallet')"
-            class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+            class="px-2 py-1 bg-green-600 text-white rounded-lg border border-green-600 hover:bg-green-700 hover:border-green-700 transition-colors text-xs min-w-0"
+            style="min-width: 0;"
           >
             {{ userBalance }} ₽
           </button>
 
           <button
             @click="goNotifications"
-            class="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            class="relative p-1 hover:bg-gray-100 rounded-lg transition-colors min-w-0"
+            style="min-width: 0;"
           >
-            <Bell class="w-5 h-5 text-gray-700" />
+            <Bell class="w-4 h-4 text-gray-700" />
             <span v-if="unreadNotifications > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <div class="relative" ref="profileMenuRef">
+          <div class="relative min-w-0" ref="profileMenuRef">
             <button
               @click.stop="toggleProfileMenu"
-              class="p-2 rounded-lg border border-gray-200 hover:border-violet-400 hover:bg-violet-50 transition-colors flex items-center gap-2"
+              class="p-1 rounded-lg border border-gray-200 hover:border-violet-400 hover:bg-violet-50 transition-colors flex items-center gap-1 min-w-0"
+              style="min-width: 0;"
             >
               <img
                 v-if="resolvedAvatar"
                 :src="resolvedAvatar"
                 alt="Аватар"
-                class="w-6 h-6 rounded-full object-cover"
+                class="w-5 h-5 rounded-full object-cover"
               />
-              <User v-else class="w-5 h-5 text-gray-700" />
-              <span v-if="isAuthenticated" class="text-sm text-gray-800 font-medium">{{ userName || 'Профиль' }}</span>
+              <User v-else class="w-4 h-4 text-gray-700" />
+              <span v-if="isAuthenticated" class="text-xs text-gray-800 font-medium max-w-[80px] truncate">{{ userName || 'Профиль' }}</span>
             </button>
 
             <div
               v-if="profileMenuOpen"
-              class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50"
+              class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50"
             >
-              <div v-if="isAuthenticated" class="px-4 py-2 border-b border-gray-100 text-sm text-gray-700">
+              <div v-if="isAuthenticated" class="px-4 py-2 border-b border-gray-100 text-xs text-gray-700">
                 {{ userName || 'Профиль' }}
               </div>
 
               <button
                 v-if="isAuthenticated"
                 @click="goProfile"
-                class="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-800 hover:bg-violet-50"
+                class="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-800 hover:bg-violet-50 text-xs"
               >
                 <User class="w-4 h-4" />
-                Перейти в профиль
+                Профиль
               </button>
               <button
                 v-if="isAuthenticated"
                 @click="handleLogout"
-                class="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:text-red-700 hover:bg-violet-50"
+                class="w-full flex items-center gap-2 px-4 py-2 text-left text-red-600 hover:text-red-700 hover:bg-violet-50 text-xs"
               >
                 <LogOut class="w-4 h-4" />
                 Выйти
@@ -263,7 +301,7 @@ const handleSearchSubmit = () => {
               <template v-else>
                 <button
                   @click="() => { profileMenuOpen = false; startAuth() }"
-                  class="w-full flex items-center gap-2 px-4 py-2 text-left text-violet-700 hover:bg-violet-50"
+                  class="w-full flex items-center gap-2 px-4 py-2 text-left text-violet-700 hover:bg-violet-50 text-xs"
                 >
                   <User class="w-4 h-4" />
                   Войти с Yandex
@@ -314,9 +352,9 @@ const handleSearchSubmit = () => {
           <button
             v-for="item in navItems"
             :key="item.id"
-            @click="() => { go(item.id); mobileMenuOpen = false }"
-            class="text-left py-2 hover:text-violet-600 transition-colors"
-            :class="currentPage === item.id ? 'text-violet-600' : 'text-gray-700'"
+            @click="() => { item.action(); mobileMenuOpen = false }"
+            class="text-left py-2 transition-colors whitespace-nowrap"
+            :class="navButtonClass(item)"
           >
             {{ item.label }}
           </button>
@@ -370,7 +408,7 @@ const handleSearchSubmit = () => {
           <div class="pt-3 mt-3 border-t border-gray-200">
             <button
               @click="() => { go('wallet'); mobileMenuOpen = false }"
-              class="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg inline-block border border-violet-200 hover:border-violet-400 hover:bg-violet-100 transition-colors"
+              class="px-3 py-1 bg-green-600 text-white rounded-lg inline-block border border-green-600 hover:bg-green-700 hover:border-green-700 transition-colors"
             >
               Баланс: {{ userBalance }} ₽
             </button>
