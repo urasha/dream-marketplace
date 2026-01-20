@@ -102,6 +102,9 @@ public class DreamService {
         if (!dream.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
+        if (lotRepository.existsByDreamRecordId(dreamId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Нельзя запросить визуализацию: по сну создан лот");
+        }
         if (dream.getVisualization() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Visualization already accepted for this dream");
         }
@@ -155,6 +158,9 @@ public class DreamService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dream not found"));
         if (!dream.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (lotRepository.existsByDreamRecordId(dreamId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Нельзя загрузить визуализацию: по сну создан лот");
         }
         if (request == null || request.filePath() == null || request.filePath().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "filePath is required");
