@@ -13,6 +13,12 @@ public class YandexUserInfoResponse {
     @JsonProperty("real_name")
     private String realName;
 
+    @JsonProperty("default_avatar_id")
+    private String defaultAvatarId;
+
+    @JsonProperty("is_avatar_empty")
+    private Boolean isAvatarEmpty;
+
     public String getId() {
         return id;
     }
@@ -45,6 +51,22 @@ public class YandexUserInfoResponse {
         this.realName = realName;
     }
 
+    public String getDefaultAvatarId() {
+        return defaultAvatarId;
+    }
+
+    public void setDefaultAvatarId(String defaultAvatarId) {
+        this.defaultAvatarId = defaultAvatarId;
+    }
+
+    public Boolean getIsAvatarEmpty() {
+        return isAvatarEmpty;
+    }
+
+    public void setIsAvatarEmpty(Boolean isAvatarEmpty) {
+        this.isAvatarEmpty = isAvatarEmpty;
+    }
+
     public String getDisplayName() {
         if (realName != null && !realName.isBlank()) {
             return realName;
@@ -53,5 +75,15 @@ public class YandexUserInfoResponse {
             return login;
         }
         return defaultEmail;
+    }
+
+    public String getAvatarUrl() {
+        if (Boolean.TRUE.equals(isAvatarEmpty)) {
+            return null;
+        }
+        if (defaultAvatarId == null || defaultAvatarId.isBlank()) {
+            return null;
+        }
+        return "https://avatars.yandex.net/get-yapic/" + defaultAvatarId + "/islands-200";
     }
 }

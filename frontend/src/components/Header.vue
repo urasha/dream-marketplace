@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Menu, X, Search, User, Bell, LogOut } from 'lucide-vue-next'
 import { useSessionStore } from '../stores/session'
 import { useLotsStore } from '../stores/lots'
+import { API_BASE } from '../api/httpClient'
 
 const props = defineProps({
   currentPage: { type: String, required: false },
@@ -12,6 +13,7 @@ const props = defineProps({
   unreadNotifications: { type: Number, default: 3 },
   isAuthenticated: { type: Boolean, default: false },
   userName: { type: String, default: '' },
+  userAvatar: { type: String, default: '' },
 })
 
 const router = useRouter()
@@ -33,6 +35,18 @@ const navItems = computed(() => {
     base.push({ id: 'admin', label: 'Админ' })
   }
   return base
+})
+
+const resolvedAvatar = computed(() => {
+  const url = props.userAvatar || ''
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
 })
 
 const go = (page) => {
@@ -211,7 +225,13 @@ const handleSearchSubmit = () => {
               @click.stop="toggleProfileMenu"
               class="p-2 rounded-lg border border-gray-200 hover:border-violet-400 hover:bg-violet-50 transition-colors flex items-center gap-2"
             >
-              <User class="w-5 h-5 text-gray-700" />
+              <img
+                v-if="resolvedAvatar"
+                :src="resolvedAvatar"
+                alt="Аватар"
+                class="w-6 h-6 rounded-full object-cover"
+              />
+              <User v-else class="w-5 h-5 text-gray-700" />
               <span v-if="isAuthenticated" class="text-sm text-gray-800 font-medium">{{ userName || 'Профиль' }}</span>
             </button>
 
@@ -318,7 +338,13 @@ const handleSearchSubmit = () => {
                 @click="() => { goProfile(); mobileMenuOpen = false }"
                 class="flex items-center gap-2"
               >
-                <User class="w-5 h-5" />
+                <img
+                  v-if="resolvedAvatar"
+                  :src="resolvedAvatar"
+                  alt="Аватар"
+                  class="w-6 h-6 rounded-full object-cover"
+                />
+                <User v-else class="w-5 h-5" />
                 <span class="font-medium">{{ userName || 'Профиль' }}</span>
               </button>
               <button

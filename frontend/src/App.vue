@@ -17,6 +17,7 @@ const session = useSessionStore()
 const userRole = computed(() => session.role.value || 'user')
 const isAuthenticated = computed(() => session.isAuthenticated.value)
 const userName = computed(() => session.state.profile?.username || '')
+const userAvatar = computed(() => session.state.profile?.avatarUrl || '')
 
 const updateBalance = (value) => {
   userBalance.value = value
@@ -138,6 +139,7 @@ onBeforeUnmount(() => {
       :unread-notifications="unreadNotifications"
       :is-authenticated="isAuthenticated"
       :user-name="userName"
+      :user-avatar="userAvatar"
     />
 
     <main class="pt-16">

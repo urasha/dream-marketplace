@@ -6,9 +6,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import ru.urasha.callmeani.dream_marketplace.security.JwtUserDetails;
 import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
 import ru.urasha.callmeani.dream_marketplace.dto.UserDto;
@@ -56,6 +59,13 @@ public class ProfileController {
                         userAccountService.updateProfile(details.userId(), request.username(), request.email())
                 )
         );
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/me/avatar")
+    public ResponseEntity<UserDto> updateAvatar(@AuthenticationPrincipal JwtUserDetails details,
+                                                @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(UserMapper.toDto(userAccountService.updateAvatar(details.userId(), file)));
     }
 
     @PreAuthorize("isAuthenticated()")

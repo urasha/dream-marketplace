@@ -24,6 +24,9 @@ const lotsStore = useLotsStore()
 const activeTab = ref(['lots', 'purchases', 'dreams'].includes(route.query.tab) ? route.query.tab : 'dreams')
 const updateStatus = ref('idle')
 const updateError = ref('')
+const avatarUploading = ref(false)
+const avatarError = ref('')
+const avatarInputRef = ref(null)
 
 const tabs = [
   { id: 'dreams', label: 'Мои сны' },
@@ -33,6 +36,7 @@ const tabs = [
 
 const displayName = computed(() => session.state.profile?.username || '—')
 const displayEmail = computed(() => session.state.profile?.email || '—')
+const avatarUrl = computed(() => session.state.profile?.avatarUrl || '')
 
 const usernameInput = ref('')
 const emailInput = ref('')
@@ -82,6 +86,47 @@ const resolvePreviewUrl = (url) => {
     return `${API_BASE}${url}`
   }
   return url
+}
+
+const resolveAvatarUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
+}
+
+const triggerAvatarSelect = () => {
+  avatarInputRef.value?.click()
+}
+
+const handleAvatarChange = async (event) => {
+  const file = event.target?.files?.[0]
+  if (!file) return
+  avatarError.value = ''
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    avatarError.value = 'Поддерживаются только PNG, JPG или WEBP'
+    event.target.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    avatarError.value = 'Файл больше 5 МБ'
+    event.target.value = ''
+    return
+  }
+  avatarUploading.value = true
+  try {
+    await session.updateAvatar(file)
+  } catch (err) {
+    avatarError.value = err?.userMessage || normalizeErrorMessage(err, 'Не удалось обновить аватар')
+  } finally {
+    avatarUploading.value = false
+    event.target.value = ''
+  }
 }
 
 const dreamCards = computed(() =>
@@ -190,8 +235,31 @@ const handleLogout = async () => {
 
     <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
       <div class="flex items-start gap-6">
-        <div class="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0">
-          <User class="w-12 h-12 text-white" />
+        <div class="flex flex-col items-center gap-3 flex-shrink-0">
+          <div class="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-xl flex items-center justify-center overflow-hidden">
+            <img
+              v-if="avatarUrl"
+              :src="resolveAvatarUrl(avatarUrl)"
+              alt="Аватар"
+              class="w-full h-full object-cover"
+            />
+            <User v-else class="w-12 h-12 text-white" />
+          </div>
+          <input
+            ref="avatarInputRef"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            class="hidden"
+            @change="handleAvatarChange"
+          />
+          <button
+            @click="triggerAvatarSelect"
+            class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:border-violet-400 hover:bg-violet-50 transition-colors"
+            :disabled="avatarUploading"
+          >
+            {{ avatarUploading ? 'Загрузка...' : 'Загрузить фото' }}
+          </button>
+          <span v-if="avatarError" class="text-xs text-red-600 text-center">{{ avatarError }}</span>
         </div>
         <div class="flex-1">
           <div class="flex items-start justify-between gap-3 mb-4">

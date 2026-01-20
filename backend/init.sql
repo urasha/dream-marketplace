@@ -8,6 +8,7 @@ CREATE TABLE USER_ACCOUNT (
                               yandex_id VARCHAR UNIQUE,
                               username VARCHAR NOT NULL,
                               email VARCHAR NOT NULL UNIQUE,
+                              avatar_url VARCHAR,
                               role VARCHAR NOT NULL CHECK (role IN ('USER','ADMIN')),
                               balance NUMERIC DEFAULT 0 CHECK (balance >= 0),
                               created_at TIMESTAMP NOT NULL DEFAULT now()

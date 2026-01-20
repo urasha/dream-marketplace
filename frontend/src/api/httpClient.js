@@ -42,8 +42,12 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   }
 
   if (body !== undefined) {
-    init.headers['Content-Type'] = 'application/json'
-    init.body = JSON.stringify(body)
+    if (body instanceof FormData) {
+      init.body = body
+    } else {
+      init.headers['Content-Type'] = 'application/json'
+      init.body = JSON.stringify(body)
+    }
   }
 
   if (token) {
