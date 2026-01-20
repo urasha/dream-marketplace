@@ -43,7 +43,8 @@ public class YandexOAuthService {
         return new YandexProfile(
                 info.getId(),
                 info.getDefaultEmail(),
-                info.getDisplayName()
+            info.getDisplayName(),
+            info.getAvatarUrl()
         );
     }
 

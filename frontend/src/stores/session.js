@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { fetchProfile, updateProfile as apiUpdateProfile } from '../api/profile'
+import { fetchProfile, updateProfile as apiUpdateProfile, uploadAvatar as apiUploadAvatar } from '../api/profile'
 import { logout as apiLogout } from '../api/auth'
 
 const state = reactive({
@@ -43,6 +43,20 @@ async function updateProfile(payload) {
   }
 }
 
+async function updateAvatar(file) {
+  state.loading = true
+  state.error = null
+  try {
+    state.profile = await apiUploadAvatar(file)
+    return state.profile
+  } catch (err) {
+    state.error = err
+    throw err
+  } finally {
+    state.loading = false
+  }
+}
+
 async function logout() {
   state.loading = true
   state.error = null
@@ -66,6 +80,7 @@ export function useSessionStore() {
     state,
     loadProfile,
     updateProfile,
+    updateAvatar,
     logout,
     isAuthenticated,
     role,

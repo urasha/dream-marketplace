@@ -7,3 +7,9 @@ export async function fetchProfile() {
 export async function updateProfile(payload) {
   return httpClient.patch('/api/profile/me', payload)
 }
+
+export async function uploadAvatar(file) {
+  const form = new FormData()
+  form.append('file', file)
+  return httpClient.post('/api/profile/me/avatar', form)
+}

@@ -50,7 +50,7 @@ public class PublicProfileController {
     public ResponseEntity<PublicUserDto> profile(@PathVariable Long id) {
         UserAccount user = userAccountRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return ResponseEntity.ok(new PublicUserDto(user.getId(), user.getUsername()));
+        return ResponseEntity.ok(new PublicUserDto(user.getId(), user.getUsername(), user.getAvatarUrl()));
     }
 
     @GetMapping("/{id}/lots")

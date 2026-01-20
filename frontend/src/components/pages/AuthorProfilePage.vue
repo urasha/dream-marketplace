@@ -38,6 +38,17 @@ const resolvePreviewUrl = (url) => {
   return url
 }
 
+const resolveAvatarUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE}${url}`
+  }
+  return url
+}
+
 const goBack = () => {
   if (window.history.length > 1) {
     router.back()
@@ -85,8 +96,14 @@ watch(userId, loadAll)
     <div v-else-if="error" class="text-red-600">{{ error }}</div>
     <template v-else>
       <div class="flex items-center gap-4 mb-8">
-        <div class="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center">
-          <User class="w-6 h-6 text-violet-600" />
+        <div class="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center overflow-hidden">
+          <img
+            v-if="profile?.avatarUrl"
+            :src="resolveAvatarUrl(profile.avatarUrl)"
+            alt="Аватар"
+            class="w-full h-full object-cover"
+          />
+          <User v-else class="w-6 h-6 text-violet-600" />
         </div>
         <div>
           <h1 class="text-2xl font-semibold">{{ profile?.username || 'Автор' }}</h1>
