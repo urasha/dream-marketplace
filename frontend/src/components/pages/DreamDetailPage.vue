@@ -59,6 +59,7 @@ const formatStatus = (status) => statusLabels[status] || status
 const hasVisualizations = computed(() => visualizations.value.length > 0)
 const readyVisualizations = computed(() => visualizations.value.filter((v) => v.status === 'READY' || v.status === 'ACCEPTED'))
 const isMock = computed(() => (imageGenConfig.mode || 'mock') === 'mock')
+const isLotLocked = computed(() => Boolean(dream.value?.hasLot))
 
 const previewSrc = ref(null)
 
@@ -164,6 +165,10 @@ const restoreGenerationState = () => {
 
 const handleRequestGeneration = async () => {
   if (!dream.value) return
+  if (dream.value.hasLot) {
+    requestError.value = 'Нельзя запросить визуализацию: по сну создан лот'
+    return
+  }
   requestError.value = ''
   genStatus.value = ''
   genResultUrl.value = ''
@@ -380,10 +385,11 @@ onMounted(loadDream)
           <button
             @click="handleRequestGeneration"
             class="ml-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-60"
-            :disabled="isRequesting"
+            :disabled="isRequesting || isLotLocked"
           >
             {{ isRequesting ? 'Генерируем...' : 'Запросить генерацию' }}
           </button>
+          <span v-if="isLotLocked" class="text-sm text-gray-500">Лот уже создан — генерация недоступна</span>
         </div>
 
         <div v-if="hasVisualizations" class="space-y-4">
