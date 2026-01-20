@@ -132,13 +132,21 @@ const checkPaymentStatus = async () => {
     paymentChecking.value = false
   }
 }
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
+  }
+}
 </script>
 
 <template>
   <div class="max-w-[800px] mx-auto px-6 py-12" v-if="lot">
     <template v-if="step === 'confirm'">
       <button
-        @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
+        @click="goBack"
         class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
       >
         <ArrowLeft class="w-5 h-5" />
@@ -211,7 +219,7 @@ const checkPaymentStatus = async () => {
           {{ purchaseProcessing ? 'Покупаем...' : 'Подтвердить покупку' }}
         </button>
         <button
-          @click="router.push({ name: 'lot-detail', params: { id: lotId } })"
+          @click="goBack"
           class="px-8 py-3 border-2 border-gray-400 hover:border-black transition-colors"
         >
           Отмена
@@ -247,7 +255,7 @@ const checkPaymentStatus = async () => {
 
     <template v-else-if="step === 'topup'">
       <button
-        @click="step = 'confirm'"
+        @click="goBack"
         class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
       >
         <ArrowLeft class="w-5 h-5" />

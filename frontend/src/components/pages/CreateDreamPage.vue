@@ -127,12 +127,20 @@ const handleSubmit = async () => {
     errorMessage.value = err?.data?.message || 'Не удалось создать сон'
   }
 }
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
+  }
+}
 </script>
 
 <template>
   <div class="max-w-[800px] mx-auto px-6 py-12">
     <button
-        @click="router.push({ name: 'profile' })"
+        @click="goBack"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-violet-600 transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />

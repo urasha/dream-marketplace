@@ -43,15 +43,13 @@ const selectedRating = ref(null)
 const hoverRating = ref(null)
 const deleteError = ref('')
 
-const backTarget = computed(() => {
-  if (route.query.from === 'profile-lots') {
-    return { name: 'profile', query: { tab: 'lots' } }
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
   }
-  if (route.query.from === 'profile-purchases') {
-    return { name: 'profile', query: { tab: 'purchases' } }
-  }
-  return { name: 'home' }
-})
+}
 
 const isOwner = computed(() => {
   const userId = session.state.profile?.id
@@ -205,7 +203,7 @@ const handleDelete = async () => {
   try {
     await lotsStore.deleteLot(lot.value.id)
     await dreamsStore.loadDreams().catch(() => {})
-    router.push(backTarget.value)
+    goBack()
   } catch (e) {
     deleteError.value = e?.userMessage || normalizeErrorMessage(e, 'Не удалось удалить лот')
   }
@@ -267,7 +265,7 @@ watch(
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
     <button
-      @click="router.push(backTarget)"
+      @click="goBack"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />

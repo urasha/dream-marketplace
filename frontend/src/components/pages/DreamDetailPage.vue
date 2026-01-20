@@ -34,6 +34,14 @@ const maxPolls = imageGenConfig.maxPolls || 60
 const pollIntervalMs = imageGenConfig.pollIntervalMs || 2000
 let pollTimer = null
 
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
+  }
+}
+
 const statusLabels = {
   PENDING: 'В очереди на генерацию',
   PROCESSING: 'В процессе',
@@ -328,7 +336,7 @@ onMounted(loadDream)
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
     <button
-      @click="router.push({ name: 'profile' })"
+      @click="goBack"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
     >
       <ArrowLeft class="w-5 h-5" />

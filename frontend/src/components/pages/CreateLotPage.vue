@@ -36,10 +36,10 @@ const tagsState = reactive({
 const hasContext = computed(() => Boolean(props.dreamId && props.visualizationId))
 
 const goBack = () => {
-  if (props.dreamId) {
-    router.push({ name: 'dream-detail', params: { id: props.dreamId } })
+  if (window.history.length > 1) {
+    router.back()
   } else {
-    router.push({ name: 'profile' })
+    router.push({ name: 'home' })
   }
 }
 

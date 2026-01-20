@@ -38,6 +38,14 @@ const resolvePreviewUrl = (url) => {
   return url
 }
 
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'home' })
+  }
+}
+
 const loadAll = async () => {
   if (!userId.value) return
   loading.value = true
@@ -67,7 +75,7 @@ watch(userId, loadAll)
 <template>
   <div class="max-w-[1160px] mx-auto px-6 py-12">
     <button
-      @click="router.back()"
+      @click="goBack"
       class="flex items-center gap-2 mb-6 text-gray-600 hover:text-black transition-colors"
     >
       ← Назад

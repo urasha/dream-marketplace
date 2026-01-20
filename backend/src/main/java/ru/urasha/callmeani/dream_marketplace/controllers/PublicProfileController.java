@@ -14,6 +14,7 @@ import ru.urasha.callmeani.dream_marketplace.dto.PurchaseItemDto;
 import ru.urasha.callmeani.dream_marketplace.mappers.DreamMapper;
 import ru.urasha.callmeani.dream_marketplace.mappers.LotMapper;
 import ru.urasha.callmeani.dream_marketplace.models.entities.UserAccount;
+import ru.urasha.callmeani.dream_marketplace.models.enums.LotStatus;
 import ru.urasha.callmeani.dream_marketplace.models.enums.Privacy;
 import ru.urasha.callmeani.dream_marketplace.repositories.DreamRepository;
 import ru.urasha.callmeani.dream_marketplace.repositories.LotRepository;
@@ -55,6 +56,7 @@ public class PublicProfileController {
     @GetMapping("/{id}/lots")
     public ResponseEntity<List<LotDto>> lots(@PathVariable Long id) {
         List<LotDto> lots = lotRepository.findByDreamRecord_User_IdOrderBySubmittedAtDesc(id).stream()
+            .filter(lot -> lot.getStatus() != LotStatus.CLOSED)
                 .map(lot -> LotMapper.toDto(
                         lot,
                         ratingRepository.averageForLot(lot.getId()),
