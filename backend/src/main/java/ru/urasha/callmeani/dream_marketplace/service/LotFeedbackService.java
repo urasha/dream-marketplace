@@ -93,7 +93,7 @@ public class LotFeedbackService {
                     lot,
                     user,
                     "Пользователь " + displayName(user) + " поставил оценку " + value + " лоту «" + lot.getTitle() + "».",
-                    null,
+                    lot.getId(),
                     null
                 );
         }

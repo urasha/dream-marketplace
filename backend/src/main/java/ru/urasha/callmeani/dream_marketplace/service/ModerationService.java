@@ -92,7 +92,12 @@ public class ModerationService {
         if (reason != null && !reason.isBlank()) {
             message += ". Причина: " + reason.trim();
         }
-        notificationService.notifyUser(lot.getDreamRecord() != null ? lot.getDreamRecord().getUser() : null, message);
+        notificationService.notifyUser(
+            lot.getDreamRecord() != null ? lot.getDreamRecord().getUser() : null,
+            message,
+            lot.getId(),
+            null
+        );
     }
 
     private void notifyAuthor(Lot lot, String message) {
@@ -101,7 +106,7 @@ public class ModerationService {
         }
         var dream = lot.getDreamRecord();
         var author = dream != null ? dream.getUser() : null;
-        notificationService.notifyUser(author, message);
+        notificationService.notifyUser(author, message, lot.getId(), null);
     }
 
     private ModerationQueueItemDto toQueueDto(Lot lot) {
