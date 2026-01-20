@@ -23,6 +23,7 @@ const lotsStore = useLotsStore()
 
 const activeTab = ref(['lots', 'purchases', 'dreams'].includes(route.query.tab) ? route.query.tab : 'dreams')
 const tabsRef = ref(null)
+const skipNextScroll = ref(false)
 const updateStatus = ref('idle')
 const updateError = ref('')
 const avatarUploading = ref(false)
@@ -237,6 +238,10 @@ watch(
   (tab) => {
     if (['lots', 'purchases', 'dreams'].includes(tab)) {
       activeTab.value = tab
+      if (skipNextScroll.value) {
+        skipNextScroll.value = false
+        return
+      }
       setTimeout(scrollToTabs, 100)
     }
   }
@@ -266,6 +271,7 @@ const handleUpdateProfile = async () => {
 
 const setActiveTab = (tabId) => {
   activeTab.value = tabId
+  skipNextScroll.value = true
   router.replace({ query: { ...route.query, tab: tabId } })
 }
 
@@ -427,7 +433,7 @@ const handleLogout = async () => {
           v-for="tab in tabs"
           :key="tab.id"
           @click="setActiveTab(tab.id)"
-          class="px-5 py-2 rounded-full text-sm font-semibold transition-colors"
+          class="px-6 py-3 rounded-full text-base font-semibold transition-colors"
           :class="activeTab === tab.id ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
         >
           {{ tab.label }}
@@ -436,8 +442,7 @@ const handleLogout = async () => {
     </div>
 
     <div v-if="activeTab === 'dreams'">
-      <div class="flex flex-col items-center gap-4 mb-8">
-        <h2 class="text-2xl font-semibold">Мои сны</h2>
+      <div class="flex items-center justify-start mb-8">
         <button
           @click="router.push({ name: 'create-dream' })"
           class="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full hover:bg-violet-700 transition-colors shadow-md"
@@ -467,8 +472,7 @@ const handleLogout = async () => {
     </div>
 
     <div v-else-if="activeTab === 'lots'">
-      <div class="flex flex-col items-center gap-4 mb-8">
-        <h2 class="text-2xl font-semibold">Мои лоты</h2>
+      <div class="flex flex-col items-start gap-4 mb-8">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
           <div class="p-4 bg-white border border-gray-200 rounded-xl text-center">
             <div class="text-gray-600">Всего лотов</div>
@@ -542,9 +546,6 @@ const handleLogout = async () => {
     </div>
 
     <div v-else>
-      <div class="flex flex-col items-center gap-4 mb-8">
-        <h2 class="text-2xl font-semibold">Мои покупки</h2>
-      </div>
       <div v-if="purchasesLoading" class="text-gray-600">Загружаем покупки...</div>
       <div v-else-if="purchasesError" class="text-red-600">{{ purchasesError }}</div>
       <div v-else-if="purchases.length === 0" class="text-gray-600">Покупок пока нет</div>
@@ -589,9 +590,9 @@ const handleLogout = async () => {
     </div>
   </div>
 
-  <div v-if="lotPickerOpen" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="backdrop-filter: blur(2px);">
+  <div v-if="lotPickerOpen" class="fixed inset-0 z-50 flex items-center justify-center px-4" style="backdrop-filter: blur(2px);" @click="closeLotPicker">
     <div class="absolute inset-0 bg-black/60"></div>
-    <div class="relative w-full max-w-3xl bg-gradient-to-br from-violet-100 via-white to-indigo-100 border-4 border-violet-400 rounded-3xl shadow-2xl p-0 animate-fadeIn">
+    <div class="relative w-full max-w-[70vw] max-h-[70vh] overflow-hidden bg-gradient-to-br from-violet-100 via-white to-indigo-100 border-4 border-violet-400 rounded-3xl shadow-2xl p-0 animate-fadeIn" @click.stop>
       <div class="flex items-center justify-between px-8 pt-8 pb-4 mb-2">
         <h3 class="text-2xl font-extrabold text-violet-700 drop-shadow">Выберите визуализацию для лота</h3>
         <button class="text-2xl text-violet-400 hover:text-violet-700 font-bold px-3 py-1 rounded-full transition-colors bg-white/70 shadow" @click="closeLotPicker">✕</button>

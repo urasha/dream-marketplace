@@ -100,7 +100,6 @@ const goProfile = () => {
   go('profile')
 }
 const startAuth = () => {
-  // Redirect to backend OAuth entrypoint (same for login/registration)
   const base = import.meta.env.VITE_API_URL || 'http://localhost:8080'
   window.location.href = `${base}/oauth/yandex/login`
 }
@@ -200,7 +199,7 @@ const handleSearchSubmit = () => {
         </div>
       </button>
 
-      <nav class="hidden md:flex items-center gap-0.5 flex-nowrap overflow-x-auto min-w-0">
+      <nav class="hidden md:flex items-center gap-2 flex-nowrap overflow-x-auto min-w-0">
         <div class="relative min-w-0" ref="searchBoxRef">
           <Search class="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -239,10 +238,10 @@ const handleSearchSubmit = () => {
           {{ item.label }}
         </button>
 
-        <div class="flex items-center gap-2 pl-2 border-l border-gray-200 ml-1 min-w-0">
+        <div class="flex items-center gap-2 pl-2 ml-1 min-w-0">
           <button
             @click="go('wallet')"
-            class="px-2 py-1 bg-green-600 text-white rounded-lg border border-green-600 hover:bg-green-700 hover:border-green-700 transition-colors text-xs min-w-0"
+            class="px-2 py-1 bg-violet-600 text-white rounded-lg border border-violet-600 hover:bg-violet-700 hover:border-violet-700 transition-colors text-xs min-w-0"
             style="min-width: 0;"
           >
             {{ userBalance }} ₽

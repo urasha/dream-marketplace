@@ -74,8 +74,8 @@ const checkStatus = async () => {
 </script>
 
 <template>
-  <div class="max-w-[720px] mx-auto px-6 py-12">
-    <h1 class="mb-6">Баланс и пополнение</h1>
+  <div class="max-w-[1160px] mx-auto px-6 py-12">
+    <h1 class="mb-6 page-title">Баланс и пополнение</h1>
 
     <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm mb-6">
       <div class="text-gray-600 mb-2">Текущий баланс</div>
