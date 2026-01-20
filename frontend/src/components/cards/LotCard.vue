@@ -9,6 +9,7 @@ const props = defineProps({
   description: { type: String, default: '' },
   price: { type: [Number, String], default: null },
   author: { type: String, default: 'Автор' },
+  authorId: { type: Number, default: null },
   category: { type: String, default: '' },
   imageUrl: { type: String, default: '' },
   ratingAverage: { type: Number, default: 0 },
@@ -16,7 +17,7 @@ const props = defineProps({
   tags: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['click'])
+const emit = defineEmits(['click', 'author-click'])
 
 const resolvedImageUrl = computed(() => {
   if (!props.imageUrl) return ''
@@ -96,7 +97,16 @@ const resolvedImageUrl = computed(() => {
         </div>
 
         <div class="text-sm text-gray-600 truncate max-w-[50%]">
-          {{ author }}
+          <span
+            class="hover:text-violet-600"
+            :class="authorId ? 'cursor-pointer' : ''"
+            role="button"
+            tabindex="0"
+            @click.stop="authorId ? emit('author-click', authorId) : null"
+            @keydown.enter.stop="authorId ? emit('author-click', authorId) : null"
+          >
+            {{ author }}
+          </span>
         </div>
       </div>
 

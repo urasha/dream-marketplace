@@ -218,12 +218,14 @@ onUnmounted(() => {
         :description="lot.description"
         :price="lot.price"
         :author="lot.authorName"
+        :author-id="lot.authorId"
         :category="lot.categoryName"
         :image-url="lot.visualizationUrl"
         :rating-average="lot.ratingAverage"
         :rating-count="lot.ratingCount"
         :tags="lot.tags || []"
         @click="() => router.push({ name: 'lot-detail', params: { id: lot.id } })"
+        @author-click="(authorId) => router.push({ name: 'author-profile', params: { id: authorId } })"
       />
     </div>
   </div>

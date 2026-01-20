@@ -292,7 +292,19 @@ watch(
 
         <div>
           <h1 class="mb-4 page-title">{{ lot.title }}</h1>
-          <div class="text-gray-600 mb-2">Автор: {{ lot.authorName || '—' }}</div>
+          <div class="text-gray-600 mb-2">
+            Автор:
+            <span
+              class="ml-1"
+              :class="lot.authorId ? 'text-violet-600 cursor-pointer hover:underline' : ''"
+              role="button"
+              tabindex="0"
+              @click="lot.authorId ? router.push({ name: 'author-profile', params: { id: lot.authorId } }) : null"
+              @keydown.enter="lot.authorId ? router.push({ name: 'author-profile', params: { id: lot.authorId } }) : null"
+            >
+              {{ lot.authorName || '—' }}
+            </span>
+          </div>
           <div v-if="lot.categoryName" class="text-gray-500 mb-4">Категория: {{ lot.categoryName }}</div>
           <div class="mb-6 text-xl font-semibold">{{ lot.price }} ₽</div>
 
