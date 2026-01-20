@@ -269,13 +269,16 @@ const handlePublish = async () => {
             <label
               v-for="cat in categories"
               :key="cat.id"
-              class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:border-violet-400"
+              class="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-colors"
+              :class="selectedCategoryId === cat.id
+                ? 'bg-violet-600 text-white border-violet-600'
+                : 'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-400'"
             >
               <input
                 type="radio"
                 :value="cat.id"
                 v-model="selectedCategoryId"
-                class="text-violet-600 focus:ring-violet-500"
+                class="text-white focus:ring-white"
               />
               <span class="text-sm">{{ cat.name }}</span>
             </label>
@@ -319,10 +322,10 @@ const handlePublish = async () => {
             <span
               v-for="tag in tagsState.selected"
               :key="tag.id || tag.name"
-              class="px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-sm flex items-center gap-2"
+              class="px-3 py-1 rounded-full text-sm flex items-center gap-2 border border-amber-200 bg-gradient-to-r from-amber-100 via-rose-100 to-pink-100 text-amber-800"
             >
               {{ tag.name }}
-              <button type="button" class="text-violet-500" @click="removeTag(tag.name)">×</button>
+              <button type="button" class="text-amber-600" @click="removeTag(tag.name)">×</button>
             </span>
           </div>
         </div>
