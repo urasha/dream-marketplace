@@ -66,8 +66,6 @@
 
 ## 📦 Установка и запуск
 
-### Быстрый старт с Docker Compose
-
 ```bash
 # Клонирование репозитория
 git clone https://github.com/urasha/dream-marketplace.git
@@ -76,50 +74,7 @@ cd dream-marketplace
 # Запуск всех сервисов
 docker-compose up -d
 
-# Приложение будет доступно по адресу http://localhost:8080
-```
-
-### Ручная установка
-
-1. **Клонирование репозитория**
-```bash
-git clone https://github.com/urasha/dream-marketplace.git
-cd dream-marketplace
-```
-
-2. **Настройка переменных окружения**
-```bash
-cp .env.example .env
-# Отредактируйте .env файл с вашими настройками
-```
-
-3. **Настройка базы данных**
-```bash
-# Создайте базу данных PostgreSQL
-createdb dream_marketplace
-
-# Миграции будут применены автоматически при запуске приложения
-```
-
-4. **Запуск Kafka**
-```bash
-# Используйте Docker
-docker run -d --name kafka -p 9092:9092 apache/kafka:latest
-```
-
-5. **Запуск MinIO**
-```bash
-docker run -d --name minio \
-  -p 9000:9000 -p 9001:9001 \
-  -e "MINIO_ROOT_USER=admin" \
-  -e "MINIO_ROOT_PASSWORD=password" \
-  minio/minio server /data --console-address ":9001"
-```
-
-6. **Сборка и запуск приложения**
-```bash
-./mvnw clean install
-./mvnw spring-boot:run
+# Отдельно также запустить backend (./gradlew bootRun) и frontend (npm run dev)
 ```
 
 ## ⚙️ Конфигурация
@@ -151,54 +106,6 @@ genapi.api-key: ${GENAPI_KEY}
 yookassa.shop-id: ${YOOKASSA_SHOP_ID}
 yookassa.secret-key: ${YOOKASSA_SECRET_KEY}
 ```
-
-## 📚 Документация
-
-- [Архитектура системы](docs/ARCHITECTURE.md)
-- [API Reference](docs/API.md)
-- [Руководство разработчика](docs/DEVELOPMENT.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-
-## 🤝 Вклад в проект
-
-Мы приветствуем вклад в развитие проекта! Пожалуйста, ознакомьтесь с [руководством по внесению вклада](CONTRIBUTING.md).
-
-1. Форкните репозиторий
-2. Создайте ветку для вашей функции (`git checkout -b feature/AmazingFeature`)
-3. Закоммитьте изменения (`git commit -m 'Add some AmazingFeature'`)
-4. Запушьте в ветку (`git push origin feature/AmazingFeature`)
-5. Откройте Pull Request
-
-## 📝 Roadmap
-
-- [ ] Мобильное приложение (iOS/Android)
-- [ ] Интеграция с дополнительными AI-моделями (DALL-E, Stable Diffusion)
-- [ ] NFT-функционал для уникальных снов
-- [ ] Социальные функции (комментарии, лайки, подписки)
-- [ ] Расширенная аналитика снов
-- [ ] Мультиязычная поддержка
-- [ ] GraphQL API
-
-## 📄 Лицензия
-
-Этот проект распространяется под лицензией MIT. Подробности в файле [LICENSE](LICENSE).
-
-## 👥 Авторы
-
-- **urasha** - *Initial work* - [@urasha](https://github.com/urasha)
-
-## 🙏 Благодарности
-
-- Команда Spring за отличный фреймворк
-- Yandex за OAuth 2.0 интеграцию
-- Midjourney за AI-генерацию изображений
-- Всем контрибьюторам проекта
-
-## 📞 Контакты
-
-- GitHub Issues: [dream-marketplace/issues](https://github.com/urasha/dream-marketplace/issues)
-- Email: support@dream-marketplace.io
-- Telegram: [@dream_marketplace](https://t.me/dream_marketplace)
 
 ---
 
