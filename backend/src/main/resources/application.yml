@@ -1,0 +1,69 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/dream_market}
+    username: ${DB_USER:dream_user}
+    password: ${DB_PASSWORD:dream_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKER:localhost:29092}
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+
+springdoc:
+  swagger-ui:
+    url: /openapi.yaml
+
+app:
+  kafka:
+    visualization-topic: ${VIS_TOPIC:visualization-requests}
+    image-generation-topic: ${IMAGE_GEN_TOPIC:image-generation-requests}
+  yandex:
+    client-id: ${YANDEX_CLIENT_ID:}
+    client-secret: ${YANDEX_CLIENT_SECRET:}
+    redirect-uri: ${YANDEX_REDIRECT_URI:http://localhost:8080/oauth/yandex/callback}
+  jwt:
+    secret: ${JWT_SECRET:change-me}
+    issuer: dream-marketplace
+    access-token-ttl-seconds: ${JWT_TTL_SECONDS:3600}
+  s3:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    bucket: ${S3_BUCKET:dream-visuals}
+    access-key: ${S3_ACCESS_KEY:minioadmin}
+    secret-key: ${S3_SECRET_KEY:minioadminpass}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  genapi:
+    base-url: ${GENAPI_BASE_URL:https://api.gen-api.ru/api/v1}
+    api-key: ${GENAPI_API_KEY:changeme}
+    connect-timeout-millis: ${GENAPI_CONNECT_TIMEOUT:5000}
+    read-timeout-millis: ${GENAPI_READ_TIMEOUT:30000}
+  visualization:
+    mock-enabled: ${VIS_MOCK_ENABLED:true}
+    mock-image-url: ${VIS_MOCK_IMAGE_URL:https://placehold.co/640x640/EEE/222?text=Mock+image}
+  marketplace:
+    fee-percent: ${MARKETPLACE_FEE_PERCENT:1.25}
+  yookassa:
+    shop-id: ${YOOKASSA_SHOP_ID:1252732}
+    secret-key: ${YOOKASSA_SECRET_KEY:test_C4duUrDFEyNCzu0B0adhtYOUF-EV3jkxLJRVOY7vg5w}
+    success-url: ${YOOKASSA_SUCCESS_URL:http://localhost:5173/payments/success}
+    fail-url: ${YOOKASSA_FAIL_URL:http://localhost:5173/payments/fail}

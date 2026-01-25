@@ -1,0 +1,118 @@
+version: "3.9"
+
+services:
+  # -------------------------------------------------
+  # PostgreSQL
+  # -------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: dream_market_db
+    restart: always
+    environment:
+      POSTGRES_DB: dream_market
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  # -------------------------------------------------
+  # Flyway (DB migrations)
+  # -------------------------------------------------
+  flyway:
+    image: flyway/flyway:10.15.0
+    container_name: dream_market_flyway
+    depends_on:
+      - db
+    command: >
+      -url=jdbc:postgresql://db:5432/dream_market
+      -user=${DB_USER}
+      -password=${DB_PASSWORD}
+      -locations=filesystem:/flyway/sql
+      migrate
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql
+    restart: "no"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    platform: linux/amd64
+    container_name: dream_market_zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    platform: linux/amd64
+    container_name: dream_market_kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  # -------------------------------------------------
+  # MinIO (S3 compatible storage)
+  # -------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: dream_market_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  # -------------------------------------------------
+  # MinIO bucket initialization
+  # -------------------------------------------------
+  minio-create-bucket:
+    image: minio/mc:latest
+    container_name: dream_market_minio_init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        echo 'Waiting for MinIO...';
+        for i in \$(seq 1 60); do
+          mc alias set minio http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY} && break || sleep 1;
+        done;
+        mc mb -p minio/${S3_BUCKET} || true;
+        mc anonymous set download minio/${S3_BUCKET} || true;
+        echo 'MinIO bucket initialized';
+      "
+    restart: "no"
+
+# -------------------------------------------------
+# Volumes
+# -------------------------------------------------
+volumes:
+  postgres_data:
+  minio_data:
+  kafka_data:
+  zookeeper_data:

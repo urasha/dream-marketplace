@@ -11,3 +11,11 @@
 #pagebreak()
 
 #include "second-stage.typ"
+
+#pagebreak()
+
+#include "third-stage.typ"
+
+#pagebreak()
+
+#include "forth-stage.typ"

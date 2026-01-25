@@ -1,0 +1,94 @@
+package ru.urasha.callmeani.dream_marketplace.controllers;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import ru.urasha.callmeani.dream_marketplace.config.JwtProperties;
+import ru.urasha.callmeani.dream_marketplace.dto.AuthResponse;
+import ru.urasha.callmeani.dream_marketplace.service.UserAccountService;
+import ru.urasha.callmeani.dream_marketplace.service.YandexOAuthService;
+import ru.urasha.callmeani.dream_marketplace.security.JwtService;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/oauth/yandex")
+public class AuthController {
+
+    private final YandexOAuthService yandexOAuthService;
+    private final UserAccountService userAccountService;
+    private final JwtService jwtService;
+    private final JwtProperties jwtProperties;
+    private final String frontendUrl;
+
+    public AuthController(YandexOAuthService yandexOAuthService,
+                          UserAccountService userAccountService,
+                          JwtService jwtService,
+                          JwtProperties jwtProperties,
+                          @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
+        this.yandexOAuthService = yandexOAuthService;
+        this.userAccountService = userAccountService;
+        this.jwtService = jwtService;
+        this.jwtProperties = jwtProperties;
+        this.frontendUrl = frontendUrl;
+    }
+
+    @GetMapping("/login")
+    public ResponseEntity<Void> login(@RequestParam(value = "state", required = false) String state) {
+        String url = yandexOAuthService.buildAuthorizationUrl(state);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", url)
+                .build();
+    }
+
+    @GetMapping("/callback")
+    public ResponseEntity<?> callback(@RequestParam(name = "code", required = false) String code,
+                                      @RequestParam(name = "error", required = false) String error,
+                                      HttpServletResponse response) {
+        if (error != null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Пользователь отменил доступ в Yandex ID"));
+        }
+        if (code == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            var profile = yandexOAuthService.exchangeCode(code);
+            var user = userAccountService.findOrCreateFromYandex(profile);
+            String token = jwtService.generateToken(user);
+
+            Cookie cookie = new Cookie("access_token", token);
+            cookie.setHttpOnly(true);
+            cookie.setSecure(false);
+            cookie.setPath("/");
+            cookie.setMaxAge((int) jwtProperties.getAccessTokenTtlSeconds());
+            response.addCookie(cookie);
+
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", frontendUrl)
+                .build();
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(Map.of("message", ex.getReason() != null ? ex.getReason() : "Yandex ID недоступен"));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("access_token", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ResponseEntity.noContent().build();
+    }
+}
