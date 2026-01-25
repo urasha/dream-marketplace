@@ -1,0 +1,18 @@
+package ru.urasha.callmeani.dream_marketplace.dto;
+
+import ru.urasha.callmeani.dream_marketplace.models.enums.Privacy;
+
+import java.time.LocalDateTime;
+import java.util.Set;
+
+public record DreamDto(Long id,
+                       String title,
+                       String content,
+                       Privacy privacy,
+                       Long categoryId,
+                       Set<Long> tagIds,
+                       Long visualizationId,
+                       boolean hasLot,
+                       LocalDateTime createdAt,
+                       LocalDateTime updatedAt) {
+}
