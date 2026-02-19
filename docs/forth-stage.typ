@@ -94,6 +94,89 @@
 - Выполнено: 37
 - Итоговый процент реализации: *100%*
 
+= Вклад участников
+
+Ниже перечислены задачи, выполненные участником *Джохадзе Ани (bakuani)*, со ссылками на соответствующие коммиты и pull request-ы.
+
+== 2 этап — База данных
+
+#table(
+  columns: (55%, 45%),
+  inset: 6pt,
+  align: (left, left),
+  stroke: 0.6pt,
+
+  [*Задача*], [*Коммит / PR*],
+
+  [Создание индексов БД (ix_dream_record_user_created_at, ix_visualization_status_created, ix_lot_status_price и др.)],
+  [commit `822b460c` — chore(second-stage): created indexes],
+
+  [Подтверждение эффективности индексов через EXPLAIN ANALYZE],
+  [commit `e91703c4` — chore(second-stage): prouved that indexes work well],
+)
+
+== 3–4 этап — Разработка приложения
+
+#table(
+  columns: (55%, 45%),
+  inset: 6pt,
+  align: (left, left),
+  stroke: 0.6pt,
+
+  [*Задача*], [*Коммит / PR*],
+
+  [Редактирование профиля: кнопка выхода и правки страницы профиля],
+  [PR \#6 — Profile edit],
+
+  [Улучшение UX Yandex OAuth: принудительный выбор аккаунта и обработка недоступности],
+  [PR \#7 — Improve Yandex OAuth UX],
+
+  [FR13: публикация лота — создание лота из визуализации],
+  [PR \#8 — FR13: create lots from visualizations],
+
+  [FR14: каталог лотов с фильтрами, тегами, категориями и сортировкой],
+  [PR \#9 — FR14: filters, tags, categories, sorting],
+
+  [FR17: рейтинги и комментарии к лотам],
+  [PR \#11 — FR17: add ratings and comments],
+
+  [FR19: просмотр покупок и корректных транзакций],
+  [PR \#21 — FR19: purchases and correct transactions],
+
+  [FR16, FR18, FR19: платёжная система YooKassa (пополнение баланса, оплата лотов)],
+  [PR \#22 — FR16 FR18 FR19: payment system],
+
+  [FR22: панель администратора и модерация лотов],
+  [PR \#23 — FR22: admin panel],
+
+  [Комиссия маркетплейса при продаже лота],
+  [PR \#24 — Commission for marketplace],
+
+  [Система уведомлений (покупки, модерация, рейтинги)],
+  [PR \#25 — Notifications done],
+
+  [Удаление лотов; политика закрытых лотов (нельзя комментировать / оценивать)],
+  [PR \#26 — Lot hotfixes],
+
+  [Привязка уведомлений о модерации и рейтингах к конкретным лотам],
+  [PR \#27 — Link moderation and rating notifications to lots],
+
+  [Публичные страницы профиля авторов и ссылки на них],
+  [PR \#29 — Add public author profiles and links],
+
+  [Аватары пользователей: загрузка и отображение],
+  [PR \#30 — Add user avatars and upload],
+
+  [Блокировка запросов на визуализацию для закрытых/проданных лотов],
+  [PR \#31 — Block visualization requests for lots],
+
+  [Возможность редактирования сна после создания лота],
+  [PR \#32 — Allow editing dreams after lot],
+
+  [Редизайн UI: обновление внешнего вида интерфейса],
+  [PR \#33 — Redesign],
+)
+
 = Вывод
 
 В рамках четвертого этапа курсового проекта была завершена реализация клиентской части информационной системы *Dream Marketplace* и проведена полная интеграция с серверной частью.
